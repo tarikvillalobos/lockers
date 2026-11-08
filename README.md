@@ -5,6 +5,8 @@ Modelo 3D funcional, feito em [three.js](https://threejs.org), do locker residen
 
 ## Rodar
 
+Requer Node.js 20.19+ ou 22.12+ (exigência do Vite 8).
+
 ```bash
 npm install
 npm run dev      # http://localhost:5173
