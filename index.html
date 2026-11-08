@@ -26,6 +26,7 @@
         <button data-view="persp" class="active">3D</button>
         <button data-view="front">Frente</button>
         <button data-view="side">Lateral</button>
+        <button data-view="back">Trás</button>
         <button data-view="top">Topo</button>
       </div>
     </header>
@@ -40,8 +41,8 @@
           <dl class="status">
             <div><dt>Basculante</dt><dd id="stHopper">Fechado</dd></div>
             <div><dt>Defletor anti-furto</dt><dd id="stBaffle">Recolhido</dd></div>
-            <div><dt>Fechadura</dt><dd id="stLock">Trancada</dd></div>
-            <div><dt>Porta inferior</dt><dd id="stDoor">Fechada</dd></div>
+            <div><dt>Porta frontal</dt><dd id="stDoor">Trancada</dd></div>
+            <div><dt>Porta traseira</dt><dd id="stDoorBack">Trancada</dd></div>
             <div><dt>Encomendas</dt><dd id="stCount">0</dd></div>
           </dl>
           <div class="capacity"><div class="capacity-bar" id="capBar"></div></div>
@@ -55,11 +56,17 @@
           </button>
           <div class="btn-row">
             <button class="btn" id="btnHopper">Abrir basculante <kbd>B</kbd></button>
-            <button class="btn" id="btnLock">Destrancar <kbd>L</kbd></button>
-          </div>
-          <div class="btn-row">
-            <button class="btn" id="btnDoor">Abrir porta <kbd>D</kbd></button>
             <button class="btn" id="btnRetrieve">Retirar tudo <kbd>R</kbd></button>
+          </div>
+          <div class="door-label">Porta frontal</div>
+          <div class="btn-row tight">
+            <button class="btn" id="btnLock">Destrancar <kbd>L</kbd></button>
+            <button class="btn" id="btnDoor">Abrir <kbd>D</kbd></button>
+          </div>
+          <div class="door-label">Porta traseira</div>
+          <div class="btn-row tight">
+            <button class="btn" id="btnLockBack">Destrancar <kbd>U</kbd></button>
+            <button class="btn" id="btnDoorBack">Abrir <kbd>T</kbd></button>
           </div>
           <label class="slider">
             <span>Ângulo do basculante <b class="mono" id="angleVal">0°</b></span>
@@ -93,13 +100,13 @@
             <div><dt>Boca de depósito</dt><dd>372 × 300 mm</dd></div>
             <div><dt>Basculante</dt><dd>0–75° · anti-furto</dd></div>
             <div><dt>Compartimento útil</dt><dd>398 × 334 × 398 mm</dd></div>
-            <div><dt>Porta inferior</dt><dd>368 × 490 mm · 105°</dd></div>
-            <div><dt>Fechadura</dt><dd>Tambor com came</dd></div>
+            <div><dt>Portas (frente e trás)</dt><dd>368 × 490 mm · 105°</dd></div>
+            <div><dt>Fechaduras</dt><dd>2 × tambor com came</dd></div>
           </dl>
         </section>
 
         <p class="foot">
-          Arraste para orbitar · scroll para zoom · clique no basculante, na fechadura, na porta e nas
+          Arraste para orbitar · scroll para zoom · clique no basculante, nas fechaduras, nas portas e nas
           encomendas. Arraste o basculante para abrir na mão.
         </p>
       </div>

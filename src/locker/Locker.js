@@ -87,14 +87,14 @@ export class Locker {
     this.decals = [];
 
     this.hopper = { angle: 0, target: 0 };
-    this.door = { angle: 0, target: 0, shake: 0 };
-    this.lock = { locked: true, busy: false };
+    this.doors = {}; // front / back: { angle, target, shake, locked, busy, ... }
     this.explode = { v: 0, target: 0 };
     this.baffleAngle = 0;
 
     this._buildBody();
     this._buildFrontFrame();
-    this._buildDoor();
+    this._buildDoor('front', 0);
+    this._buildDoor('back', Math.PI); // mesma porta, espelhada no fundo
     this._buildMechanism();
     this._applyExplode(0);
     this._updateMechanism();
@@ -146,16 +146,26 @@ export class Locker {
       g.add(box(m.body, sx0, sx1, yb, yt, hz - sheet, hz));
       const rx0 = side < 0 ? -ix + stile.w - sheet : ix - stile.w;
       g.add(box(m.body, rx0, rx0 + sheet, yb, yt, hz - sheet - stile.ret, hz - sheet));
-      // dobra traseira
-      g.add(box(m.body, side < 0 ? -ix : ix - 14, side < 0 ? -ix + 14 : ix, yb, yt, -hz, -hz + sheet));
+      // dobra traseira (vira o montante da porta traseira)
+      g.add(box(m.body, side < 0 ? -ix : ix - stile.w, side < 0 ? -ix + stile.w : ix, yb, yt, -hz, -hz + sheet));
       if (side > 0) this.sidePanelR = panel;
       else this.sidePanelL = panel;
     }
 
+    // Fundo: painel só acima da porta traseira + travessa e retornos do vão
     const back = this._part('back', [0, 0, -260]);
-    const backPanel = box(m.shell, -ix, ix, yb, yt, -hz + sheet, -hz + sheet * 2);
+    const lr = SPEC.lowerRail;
+    const fx = ix - stile.w; // borda interna dos montantes (187)
+    const backPanel = box(m.shell, -ix, ix, lr.y1, yt, -hz + sheet, -hz + sheet * 2);
     backPanel.userData.shell = true;
     back.add(backPanel);
+    back.add(box(m.body, -fx, fx, lr.y0, lr.y1, -hz, -hz + sheet));
+    back.add(box(m.body, -fx, fx, lr.y0, lr.y0 + sheet, -hz + sheet, -hz + 24));
+    back.add(box(m.rubber, -fx + 2, fx - 2, lr.y0 - 3, lr.y0, -hz + 6, -hz + 14));
+    for (const side of [-1, 1]) {
+      const x0 = side < 0 ? -fx - sheet : fx;
+      back.add(box(m.body, x0, x0 + sheet, yb, lr.y0, -hz + sheet, -hz + sheet + stile.ret));
+    }
   }
 
   _buildFrontFrame() {
@@ -194,18 +204,25 @@ export class Locker {
     g.add(box(m.rubber, -fx + 2, fx - 2, lr.y0 - 3, lr.y0, hz - 14, hz - 6));
   }
 
-  _buildDoor() {
+  // Porta com fechadura. which = 'front' | 'back'; a traseira é a frontal girada 180° em Y,
+  // então a dobradiça fica à direita e a fechadura à esquerda de quem olha por trás.
+  _buildDoor(which, rotY) {
     const { D, door } = SPEC;
     const m = this.m;
     const hz = D / 2;
-    const part = this._part('door', [0, 0, 440]);
+    const front = which === 'front';
+    const part = this._part(front ? 'door' : 'doorBack', [0, 0, front ? 440 : -440]);
+    part.rotation.y = rotY;
+    const ds = { which, angle: 0, target: 0, shake: 0, locked: true, busy: false };
+    this.doors[which] = ds;
     const pivot = new THREE.Group();
     pivot.position.set(door.pivotX, door.y0, hz);
     part.add(pivot);
-    this.doorPivot = pivot;
+    ds.pivot = pivot;
 
     const body = new THREE.Group();
     body.userData.action = 'door';
+    body.userData.door = which;
     pivot.add(body);
     const w = door.w,
       h = door.h,
@@ -231,6 +248,7 @@ export class Locker {
     const lock = new THREE.Group();
     lock.position.set(L.x, L.y, 0);
     lock.userData.action = 'lock';
+    lock.userData.door = which;
     body.add(lock);
     lock.add(cylZ(m.chrome, 12, 0, 3, 0, 0));
     lock.add(cylZ(m.chrome, 9.5, 3, 4.2, 0, 0));
@@ -243,7 +261,7 @@ export class Locker {
     cam.position.z = -26;
     cam.add(box(m.galv, -52, 6, -8, 8, -2, 2));
     lock.add(cam);
-    this.cam = cam;
+    ds.cam = cam;
 
     // Chave (só aparece ao destrancar)
     const key = new THREE.Group();
@@ -260,8 +278,8 @@ export class Locker {
     keyInner.add(ring);
     key.visible = false;
     lock.add(key);
-    this.key = key;
-    this.keyInner = keyInner;
+    ds.key = key;
+    ds.keyInner = keyInner;
   }
 
   _buildMechanism() {
@@ -405,8 +423,17 @@ export class Locker {
   get hopperOpen() {
     return this.hopper.target > 1;
   }
-  get doorOpen() {
-    return this.door.target > 1;
+  // Compatibilidade: porta frontal
+  get door() {
+    return this.doors.front;
+  }
+
+  doorOpen(which = 'front') {
+    return this.doors[which].target > 1;
+  }
+
+  anyDoorOpen(minAngle = 60) {
+    return Object.values(this.doors).some((d) => d.angle >= minAngle);
   }
 
   setHopperAngle(deg, immediate = false) {
@@ -427,54 +454,57 @@ export class Locker {
     });
   }
 
-  toggleDoor() {
-    if (this.doorOpen) {
-      this.door.target = 0;
+  toggleDoor(which = 'front') {
+    const d = this.doors[which];
+    const name = which === 'front' ? 'Porta frontal' : 'Porta traseira';
+    if (this.doorOpen(which)) {
+      d.target = 0;
       return { ok: true };
     }
-    if (this.lock.locked || this.lock.busy) {
-      this._shakeDoor();
+    if (d.locked || d.busy) {
+      this._shakeDoor(d);
       sfx.deny();
-      return { ok: false, msg: 'Porta trancada — destranque a fechadura primeiro' };
+      return { ok: false, msg: `${name} trancada — destranque a fechadura primeiro` };
     }
-    this.door.target = SPEC.door.maxAngle;
+    d.target = SPEC.door.maxAngle;
     sfx.metal();
     return { ok: true };
   }
 
-  _shakeDoor() {
+  _shakeDoor(d) {
     tween(0.35, (e, k) => {
-      this.door.shake = Math.sin(k * Math.PI * 7) * 0.9 * (1 - k);
+      d.shake = Math.sin(k * Math.PI * 7) * 0.9 * (1 - k);
     }, ease.linear);
   }
 
-  async toggleLock() {
-    if (this.lock.busy) return { ok: false };
-    if (!this.lock.locked && this.door.angle > 0.5) {
-      return { ok: false, msg: 'Feche a porta antes de trancar' };
+  async toggleLock(which = 'front') {
+    const d = this.doors[which];
+    if (d.busy) return { ok: false };
+    if (!d.locked && d.angle > 0.5) {
+      return { ok: false, msg: `Feche a porta ${which === 'front' ? 'frontal' : 'traseira'} antes de trancar` };
     }
-    this.lock.busy = true;
-    const locking = !this.lock.locked;
+    d.busy = true;
+    const locking = !d.locked;
     const turn = (from, to) =>
       tween(0.38, (e) => {
         const a = THREE.MathUtils.lerp(from, to, e) * DEG;
-        this.cam.rotation.z = a;
-        this.keyInner.rotation.z = a;
+        d.cam.rotation.z = a;
+        d.keyInner.rotation.z = a;
       });
     if (!locking) {
-      this.key.visible = true;
-      await tween(0.28, (e) => (this.key.position.z = (1 - e) * 60), ease.outCubic);
+      d.key.visible = true;
+      await tween(0.28, (e) => (d.key.position.z = (1 - e) * 60), ease.outCubic);
       await turn(0, 90);
       sfx.lock();
-      this.lock.locked = false;
+      d.locked = false;
     } else {
       await turn(90, 0);
       sfx.lock();
-      this.lock.locked = true;
-      await tween(0.25, (e) => (this.key.position.z = e * 60), ease.inQuad);
-      this.key.visible = false;
+      d.locked = true;
+      await tween(0.25, (e) => (d.key.position.z = e * 60), ease.inQuad);
+      d.key.visible = false;
     }
-    this.lock.busy = false;
+    d.busy = false;
     return { ok: true };
   }
 
@@ -488,7 +518,7 @@ export class Locker {
 
   reset() {
     this.hopper.target = 0;
-    this.door.target = 0;
+    for (const d of Object.values(this.doors)) d.target = 0;
   }
 
   buildEdges(material) {
@@ -521,10 +551,12 @@ export class Locker {
     this.hopper.angle = approach(this.hopper.angle, this.hopper.target, dt, 6, 40);
     if (prevH > 0.5 && this.hopper.angle === 0 && this.hopper.target === 0) sfx.metal();
 
-    const prevD = this.door.angle;
-    this.door.angle = approach(this.door.angle, this.door.target, dt, 5, 45);
-    if (prevD > 0.3 && this.door.angle === 0) sfx.metal();
-    this.doorPivot.rotation.y = (this.door.angle + this.door.shake) * DEG;
+    for (const d of Object.values(this.doors)) {
+      const prev = d.angle;
+      d.angle = approach(d.angle, d.target, dt, 5, 45);
+      if (prev > 0.3 && d.angle === 0) sfx.metal();
+      d.pivot.rotation.y = (d.angle + d.shake) * DEG;
+    }
 
     this._updateMechanism();
 

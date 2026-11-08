@@ -71,6 +71,7 @@ const VIEWS = {
   persp: { pos: [1.55, 1.25, 2.05], target: [0, 0.52, 0] },
   front: { pos: [0, 0.56, 2.75], target: [0, 0.54, 0] },
   side: { pos: [2.75, 0.56, 0], target: [0, 0.54, 0] },
+  back: { pos: [-1.35, 1.1, -2.2], target: [0, 0.5, 0] },
   top: { pos: [0, 3.1, 0.25], target: [0, 0.5, 0] },
 };
 function goView(name) {
@@ -106,15 +107,17 @@ const handle = (res) => {
 const actions = {
   deposit: async () => handle(await parcels.deposit()),
   hopper: () => handle(locker.toggleHopper()),
-  lock: async () => handle(await locker.toggleLock()),
-  door: () => handle(locker.toggleDoor()),
+  lock: async (which = 'front') => handle(await locker.toggleLock(which)),
+  door: (which = 'front') => handle(locker.toggleDoor(which)),
   retrieveAll: async () => handle(await parcels.retrieveAll()),
 };
 
 $('btnDeposit').addEventListener('click', actions.deposit);
 $('btnHopper').addEventListener('click', actions.hopper);
-$('btnLock').addEventListener('click', actions.lock);
-$('btnDoor').addEventListener('click', actions.door);
+$('btnLock').addEventListener('click', () => actions.lock('front'));
+$('btnDoor').addEventListener('click', () => actions.door('front'));
+$('btnLockBack').addEventListener('click', () => actions.lock('back'));
+$('btnDoorBack').addEventListener('click', () => actions.door('back'));
 $('btnRetrieve').addEventListener('click', actions.retrieveAll);
 
 const slider = $('angle');
@@ -212,11 +215,14 @@ function hint(p) {
   switch (p.action) {
     case 'hopper':
       return locker.hopperOpen ? 'Fechar basculante · ou arraste' : 'Abrir basculante · ou arraste';
-    case 'door':
-      if (locker.doorOpen) return 'Fechar porta';
-      return locker.lock.locked ? 'Porta trancada' : 'Abrir porta';
+    case 'door': {
+      const w = p.target.userData.door;
+      const name = w === 'front' ? 'porta frontal' : 'porta traseira';
+      if (locker.doorOpen(w)) return `Fechar ${name}`;
+      return locker.doors[w].locked ? `${name[0].toUpperCase()}${name.slice(1)} trancada` : `Abrir ${name}`;
+    }
     case 'lock':
-      return locker.lock.locked ? 'Destrancar (girar a chave)' : 'Trancar';
+      return locker.doors[p.target.userData.door].locked ? 'Destrancar (girar a chave)' : 'Trancar';
     case 'parcel':
       return `Retirar encomenda ${p.target.userData.parcel.code}`;
   }
@@ -273,8 +279,8 @@ canvas.addEventListener('pointerup', (e) => {
   const p = down.p;
   down = null;
   if (!click || !p) return;
-  if (p.action === 'door') actions.door();
-  else if (p.action === 'lock') actions.lock();
+  if (p.action === 'door') actions.door(p.target.userData.door);
+  else if (p.action === 'lock') actions.lock(p.target.userData.door);
   else if (p.action === 'parcel') parcels.retrieve(p.target.userData.item).then(handle);
 });
 
@@ -286,8 +292,10 @@ window.addEventListener('keydown', (e) => {
   const map = {
     p: actions.deposit,
     b: actions.hopper,
-    l: actions.lock,
-    d: actions.door,
+    l: () => actions.lock('front'),
+    d: () => actions.door('front'),
+    u: () => actions.lock('back'),
+    t: () => actions.door('back'),
     r: actions.retrieveAll,
     x: () => flip('tgXray'),
     c: () => flip('tgCut'),
@@ -300,6 +308,7 @@ window.addEventListener('keydown', (e) => {
     2: () => goView('front'),
     3: () => goView('side'),
     4: () => goView('top'),
+    5: () => goView('back'),
   };
   if (map[k]) {
     e.preventDefault();
@@ -317,8 +326,8 @@ $('panelToggle').addEventListener('click', () => {
 const ui = {
   hopper: $('stHopper'),
   baffle: $('stBaffle'),
-  lock: $('stLock'),
   door: $('stDoor'),
+  doorBack: $('stDoorBack'),
   count: $('stCount'),
   capBar: $('capBar'),
   capLabel: $('capLabel'),
@@ -326,6 +335,8 @@ const ui = {
   btnHopper: $('btnHopper'),
   btnLock: $('btnLock'),
   btnDoor: $('btnDoor'),
+  btnLockBack: $('btnLockBack'),
+  btnDoorBack: $('btnDoorBack'),
 };
 function set(el, text, cls = '') {
   if (el._t !== text) {
@@ -355,11 +366,16 @@ function updateStatus() {
   const ba = locker.baffleAngle - baffleRest;
   set(ui.baffle, ba > 8 ? `Bloqueando ${ba.toFixed(0)}°` : 'Recolhido', ba > 8 ? 'on' : '');
 
-  if (locker.lock.busy) set(ui.lock, 'Girando chave…', 'warn');
-  else set(ui.lock, locker.lock.locked ? 'Trancada' : 'Destrancada', locker.lock.locked ? 'ok' : 'on');
-
-  const da = locker.door.angle;
-  set(ui.door, da < 0.3 ? 'Fechada' : `Aberta ${da.toFixed(0)}°`, da < 0.3 ? '' : 'on');
+  for (const [w, el] of [
+    ['front', ui.door],
+    ['back', ui.doorBack],
+  ]) {
+    const d = locker.doors[w];
+    if (d.busy) set(el, 'Girando chave…', 'warn');
+    else if (d.angle >= 0.3) set(el, `Aberta ${d.angle.toFixed(0)}°`, 'on');
+    else if (d.locked) set(el, 'Trancada', 'ok');
+    else set(el, 'Destrancada', 'warn');
+  }
 
   const n = parcels.count + (parcels.inHopper ? 1 : 0);
   set(ui.count, parcels.inHopper ? `${parcels.count} + 1 no basculante` : `${n} unid.`, n ? 'on' : '');
@@ -374,8 +390,10 @@ function updateStatus() {
   if (document.activeElement !== slider) slider.value = ha;
 
   setBtn(ui.btnHopper, locker.hopperOpen ? 'Fechar basculante' : 'Abrir basculante', 'B');
-  setBtn(ui.btnLock, locker.lock.locked ? 'Destrancar' : 'Trancar', 'L');
-  setBtn(ui.btnDoor, locker.doorOpen ? 'Fechar porta' : 'Abrir porta', 'D');
+  setBtn(ui.btnLock, locker.doors.front.locked ? 'Destrancar' : 'Trancar', 'L');
+  setBtn(ui.btnDoor, locker.doorOpen('front') ? 'Fechar' : 'Abrir', 'D');
+  setBtn(ui.btnLockBack, locker.doors.back.locked ? 'Destrancar' : 'Trancar', 'U');
+  setBtn(ui.btnDoorBack, locker.doorOpen('back') ? 'Fechar' : 'Abrir', 'T');
 }
 
 // ---------- loop ----------

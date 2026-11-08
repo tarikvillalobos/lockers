@@ -266,6 +266,15 @@ body {
   opacity: 0.5;
   cursor: default;
 }
+.door-label {
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+}
+.btn-row.tight {
+  margin-top: 5px;
+}
 .btn-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

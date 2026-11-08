@@ -191,8 +191,8 @@ export class Parcels {
   }
 
   async retrieve(item) {
-    if (this.locker.door.angle < 60) {
-      return { ok: false, msg: 'Abra a porta inferior para retirar a encomenda' };
+    if (!this.locker.anyDoorOpen(60)) {
+      return { ok: false, msg: 'Abra uma das portas para retirar a encomenda' };
     }
     if (item.leaving) return { ok: false };
     item.leaving = true;
@@ -200,7 +200,9 @@ export class Parcels {
     const p = item.mesh;
     p.userData.action = null;
     const p0 = p.position.clone();
-    const out = new THREE.Vector3(p0.x * 0.4, 520, 620);
+    // sai pela porta que estiver aberta (frente tem prioridade)
+    const outZ = this.locker.doors.front.angle >= 60 ? 620 : -620;
+    const out = new THREE.Vector3(p0.x * 0.4, 520, outZ);
     sfx.click();
     await tween(0.75, (e, k) => {
       const lift = Math.sin(Math.min(1, k * 2) * Math.PI * 0.5) * 30;
@@ -215,8 +217,8 @@ export class Parcels {
   }
 
   async retrieveAll() {
-    if (this.locker.door.angle < 60) {
-      return { ok: false, msg: 'Abra a porta inferior para retirar as encomendas' };
+    if (!this.locker.anyDoorOpen(60)) {
+      return { ok: false, msg: 'Abra uma das portas para retirar as encomendas' };
     }
     if (!this.items.length) return { ok: false, msg: 'Nenhuma encomenda no locker' };
     const sorted = [...this.items].sort((a, b) => b.base - a.base);

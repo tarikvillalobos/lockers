@@ -56,7 +56,8 @@ export const SPEC = {
   link: { x: 189, t: 3, w: 16 },
 
   // Área útil do compartimento inferior
-  bay: { x0: -199, x1: 199, z0: -184, z1: 150, floor: 22, maxTop: 420 },
+  // z limitado pelos retornos/reforços das portas frontal e traseira
+  bay: { x0: -199, x1: 199, z0: -166, z1: 150, floor: 22, maxTop: 420 },
 };
 
 export const DEG = Math.PI / 180;
