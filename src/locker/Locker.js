@@ -357,8 +357,8 @@ export class Locker {
     const p0 = this.hopperPivotPos;
     for (const side of [-1, 1]) {
       const sx = (a, b) => (side < 0 ? [-b, -a] : [a, b]);
-      pivot.add(cylX(m.chrome, 2, ...sx(186, 199), 0, 0, 10));
-      pivot.add(cylX(m.chrome, 3.5, ...sx(182, arm.x1 + arm.t / 2 + 2), hp.pin.dy, hp.pin.z, 12));
+      pivot.add(cylX(m.chrome, 2, ...sx(183, 187), 0, 0, 10)); // pino da dobradiça até a face da coluna
+      pivot.add(cylX(m.chrome, 3.5, ...sx(179, arm.x1 + arm.t / 2 + 1), hp.pin.dy, hp.pin.z, 12));
       mech.add(box(m.galv, ...sx(199, 203), p0.y - 18, p0.y + 18, p0.x - 16, p0.x + 2));
     }
 
@@ -385,12 +385,15 @@ export class Locker {
       plate.position.x = side < 0 ? -tr.cheek.x - 2 : tr.cheek.x;
       trayRot.add(plate);
       // pino da biela da porta e pino da biela da aba (ambos presos na placa)
-      trayRot.add(cylX(m.chrome, 3.5, ...sx(tr.cheek.x, arm.x1 + arm.t / 2 + 2), tr.pin[1], tr.pin[0], 12));
-      trayRot.add(cylX(m.chrome, 3.5, ...sx(tr.cheek.x, arm.x2 + arm.t / 2 + 2), fl.pin[1], fl.pin[0], 12));
+      trayRot.add(cylX(m.chrome, 3.5, ...sx(tr.cheek.x, arm.x1 + arm.t / 2 + 1), tr.pin[1], tr.pin[0], 12));
+      trayRot.add(cylX(m.chrome, 3.5, ...sx(arm.x2 - arm.t / 2 - 1, tr.cheek.x + 2), fl.pin[1], fl.pin[0], 12));
       // eixo fixo: parafuso atravessando a placa + bloco quadrado na parede
-      mech.add(cylX(m.dark, 3.5, ...sx(186, 203), P.y, P.z, 12));
-      mech.add(box(m.galv, ...sx(tr.cheek.x + 2, 200), P.y - 8, P.y + 8, P.z - 8, P.z + 8));
+      mech.add(cylX(m.dark, 3.5, ...sx(176, 203), P.y, P.z, 12));
+      mech.add(box(m.galv, ...sx(186, 203), P.y - 8, P.y + 8, P.z - 8, P.z + 8));
     }
+
+    // soleira fixa entre a porta (dobradiça) e o piso da bandeja: nada cai pela fresta
+    mech.add(box(m.mech, -tr.halfW, tr.halfW, tr.topY - 6, tr.topY - 2, P.z + tr.front, hz - 4));
 
     // batente fixo no fundo: cobre a ponta de trás do piso quando ele está horizontal
     const ix = SPEC.W / 2 - SPEC.sheet;
@@ -400,10 +403,10 @@ export class Locker {
     const flap = new THREE.Group();
     flap.position.set(0, fl.y, fl.z);
     mech.add(flap);
-    flap.add(box(m.mech, -185, 185, -2, 0, 0, fl.len));
-    flap.add(cylX(m.chrome, 3.5, -186, 186, -1, 0, 12));
+    flap.add(box(m.mech, -168, 168, -2, 0, 0, fl.len));
+    flap.add(cylX(m.chrome, 3.5, -168, 168, -1, 0, 12));
     for (const side of [-1, 1]) {
-      flap.add(cylX(m.chrome, 3, ...(side < 0 ? [-(arm.x2 + arm.t / 2 + 2), -183] : [183, arm.x2 + arm.t / 2 + 2]), -1, fl.g, 12));
+      flap.add(cylX(m.chrome, 3, ...(side < 0 ? [-(arm.x2 + arm.t / 2 + 1), -168] : [168, arm.x2 + arm.t / 2 + 1]), -1, fl.g, 12));
     }
     this.topFlap = flap;
 
@@ -434,7 +437,7 @@ export class Locker {
     // ---- Aba da fenda de cartas (pendurada atrás da fenda) ----
     const sl = SPEC.slot;
     const lf = new THREE.Group();
-    lf.position.set(0, sl.y1 - 2, hz - 6);
+    lf.position.set(0, sl.y1 - 2, hz - 44); // atrás do lábio da fenda, sem atravessá-lo
     mech.add(lf);
     lf.add(box(m.mech, -180, 180, -sl.y1 + sl.y0 - 6, 0, -1, 1));
     this.letterFlap = lf;

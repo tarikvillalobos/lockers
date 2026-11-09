@@ -37,7 +37,7 @@ export const SPEC = {
   niche: { y1: 924, backZ: 130, ceilBackY: 905 }, // rebaixo de pegada (teto inclinado vira calha das cartas)
   lettersPanel: { y0: 924, y1: 984 },
   slot: { y0: 984, y1: 1000 }, // fenda de cartas logo abaixo do tampo
-  lettersShelf: { z0: -168, z1: 132 }, // prateleira de cartas = teto da câmara de encomendas
+  lettersShelf: { z0: -168, z1: 130 }, // prateleira de cartas = teto da câmara de encomendas
 
   // Porta de depósito (basculante): dobradiça embaixo, abre para fora até ficar na
   // horizontal (vira prateleira para apoiar a encomenda).
@@ -57,16 +57,16 @@ export const SPEC = {
   // Os pinos foram resolvidos numericamente para a placa ir de 0° a 90° quase linear.
   tray: {
     pivot: { z: 60, y: 735 }, // eixo fixo (z, y)
-    plate: [[110, -95], [110, 95], [-140, 95], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
-    front: 110, // borda da frente do piso (rel. ao eixo)
+    plate: [[85, -95], [85, 95], [-140, 95], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
+    front: 85, // borda da frente do piso (rel. ao eixo): raio ≤ 126 mm, não sai pela frente ao girar
     back: -210, // borda de trás do piso
     floorY: -93, // face de cima do piso (rel. ao eixo)
-    halfW: 188,
-    length: 320, // frente → fundo do piso
+    halfW: 178, // tudo que gira fica dentro do vão livre (±186) entre os montantes
+    length: 295, // frente → fundo do piso
     topY: 642, // face de cima do piso com a bandeja na horizontal (= batente traseiro)
     closeAngle: 90, // giro com a porta fechada (graus)
     pin: [70.165, 33.198], // pino da biela da porta, no referencial da placa (z, y)
-    cheek: { x: 188 }, // face interna das placas
+    cheek: { x: 178 }, // face interna das placas (placa: 178–180)
     rearStop: 16, // batente na porta traseira que cobre a ponta do piso
   },
 
@@ -76,7 +76,7 @@ export const SPEC = {
   flap: { z: 23.49, y: 868, len: 130, g: 71.372, pin: [-2.63, 70.68] },
 
   // Bielas chatas (largura, espessura, sobra nas pontas; x do centro de cada uma)
-  arm: { w: 9, t: 3, over: 7, x1: 192.5, x2: 196.5 },
+  arm: { w: 9, t: 3, over: 7, x1: 182.5, x2: 175.5 }, // biela 1 por fora da placa, biela 2 por dentro
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira
