@@ -100,10 +100,9 @@ export class Parcels {
     return area / (w * d);
   }
 
-  // Comprimento máximo da caixa na bandeja: do batente de baixo (v=27) até a aba de cima
+  // Comprimento máximo da caixa na bandeja (cabe na face do basculante)
   _maxTrayLength() {
-    const { faceH, topStop } = SPEC.hopper;
-    return Math.floor(faceH - 2 - topStop.length * Math.sin(topStop.tilt * DEG) - 27 - 5);
+    return SPEC.hopper.faceH - 32;
   }
 
   _pickDims() {
