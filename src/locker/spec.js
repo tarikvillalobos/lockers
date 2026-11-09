@@ -28,7 +28,11 @@ export const SPEC = {
     pivotX: 186, // dobradiça no lado direito (vista frontal)
     maxAngle: 105,
     lock: { x: -332, y: 348 }, // fechadura tambor (coordenadas locais da porta)
-    slatH: 61, // ripas horizontais na frente
+    slatH: 61, // ripas horizontais na frente (fachada e basculante)
+    // Visor fumê (estilo smartlocker): a mesma porta serve para todas as posições e modelos. Abertura recortada
+    // na chapa, acrílico fumê de 4 mm colado por trás (fita estrutural) e gaxeta de borracha na borda.
+    // A borda do lado da fechadura é mais larga para abrigar a fechadura de tambor do Armário 1.
+    window: { border: 36, borderLock: 56, gasket: 5, pane: { t: 4, overlap: 6 } },
   },
 
   // Porta traseira de acesso: igual à frontal inferior (mesma altura, ripas e fechadura)

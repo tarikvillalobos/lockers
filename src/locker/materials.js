@@ -89,6 +89,17 @@ export function createMaterials() {
     brass: new THREE.MeshPhysicalMaterial({ color: '#c9a24c', roughness: 0.25, metalness: 1 }),
     dark: new THREE.MeshStandardMaterial({ color: '#0d0f10', roughness: 0.6, metalness: 0.2 }),
     rubber: new THREE.MeshStandardMaterial({ color: '#141516', roughness: 0.92, metalness: 0 }),
+    // vidro/acrílico fumê das portas (visor)
+    smoke: new THREE.MeshPhysicalMaterial({
+      color: '#1b2328',
+      roughness: 0.06,
+      metalness: 0,
+      transparent: true,
+      opacity: 0.55,
+      clearcoat: 1,
+      clearcoatRoughness: 0.05,
+      depthWrite: false,
+    }),
   };
   m.shell.side = THREE.DoubleSide;
   return m;

@@ -279,9 +279,9 @@ export class Locker {
     const m = this.m;
     const hz = D / 2;
     const cfg = {
-      front: { y0: door.y0, h: door.h, lockY: door.lock.y, slats: true, part: 'door', off: 440 },
-      back: { y0: backDoor.y0, h: backDoor.h, lockY: backDoor.lockY, slats: true, part: 'doorBack', off: -440 },
-      elec: { y0: elec.rear.y0, h: elec.y1 - elec.rear.y0, lockY: (elec.y1 - elec.rear.y0) / 2, slats: false, part: 'doorElec', off: -440 },
+      front: { y0: door.y0, h: door.h, lockY: door.lock.y, window: true, part: 'door', off: 440 },
+      back: { y0: backDoor.y0, h: backDoor.h, lockY: backDoor.lockY, window: true, part: 'doorBack', off: -440 },
+      elec: { y0: elec.rear.y0, h: elec.y1 - elec.rear.y0, lockY: (elec.y1 - elec.rear.y0) / 2, window: false, part: 'doorElec', off: -440 },
     }[which];
     const y0 = cfg.y0;
     const part = this._part(cfg.part, [0, 0, cfg.off]);
@@ -300,19 +300,39 @@ export class Locker {
     const w = door.w,
       h = cfg.h,
       d = door.depth;
-    // face + retornos (chapa dobrada)
-    body.add(box(m.front, -w, 0, 0, h, -2, 0));
     const sol = this.lockType === 'solenoid' && which !== 'elec'; // a tampa da eletrônica é sempre de chave
+    // retornos (chapa dobrada nos 4 lados: peça única cortada a laser + 4 dobras)
     body.add(box(m.front, -w, -w + 2, 0, h, -d, -2));
     body.add(box(m.front, -2, 0, 0, h, -d, -2));
     body.add(box(m.front, -w + 2, -2, h - 2, h, -d, -2));
     body.add(box(m.front, -w + 2, -2, 0, 2, -d, -2));
-    // reforços internos (perfis ômega)
-    for (const cx of [-205, -163]) {
-      body.add(box(m.front, cx - 11, cx + 11, 14, h - 14, -14, -2));
+    if (cfg.window) {
+      // face com abertura (4 faixas) + vidro fumê atrás + gaxeta de borracha
+      const win = door.window;
+      const x0 = -w + win.borderLock,
+        x1 = -win.border,
+        wy0 = win.border,
+        wy1 = h - win.border;
+      body.add(box(m.front, -w, x0, 0, h, -2, 0)); // lado da fechadura
+      body.add(box(m.front, x1, 0, 0, h, -2, 0)); // lado da dobradiça
+      body.add(box(m.front, x0, x1, 0, wy0, -2, 0)); // baixo
+      body.add(box(m.front, x0, x1, wy1, h, -2, 0)); // cima
+      const pane = box(m.smoke, x0 - win.pane.overlap, x1 + win.pane.overlap, wy0 - win.pane.overlap, wy1 + win.pane.overlap, -2 - win.pane.t, -2);
+      pane.userData.noEdges = true;
+      pane.renderOrder = 2;
+      body.add(pane);
+      const gk = win.gasket;
+      body.add(box(m.rubber, x0, x1, wy0, wy0 + gk, -2, 0.6));
+      body.add(box(m.rubber, x0, x1, wy1 - gk, wy1, -2, 0.6));
+      body.add(box(m.rubber, x0, x0 + gk, wy0 + gk, wy1 - gk, -2, 0.6));
+      body.add(box(m.rubber, x1 - gk, x1, wy0 + gk, wy1 - gk, -2, 0.6));
+    } else {
+      body.add(box(m.front, -w, 0, 0, h, -2, 0)); // face lisa (tampa da eletrônica)
+      // reforços internos (perfis ômega)
+      for (const cx of [-205, -163]) {
+        body.add(box(m.front, cx - 11, cx + 11, 14, h - 14, -14, -2));
+      }
     }
-    // frente ripada (as portas de baixo se confundem com a fachada); a tampa da eletrônica é lisa
-    if (cfg.slats) addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
     if (sol) {
       this._buildSolenoidLock(body, part, which, cfg, ds);
       return;
