@@ -305,6 +305,8 @@ export class Locker {
     const fw = hp.faceW / 2;
     // face frontal
     body.add(box(m.front, -fw, fw, 0, hp.faceH, -2, 0));
+    // aba anti-furto: dobra de 90° para dentro na borda de cima da face
+    body.add(box(m.front, -hp.sideX, hp.sideX, hp.faceH - 2, hp.faceH, -2 - hp.topStop, -2));
     // aba-puxador superior (dobrada a 45° para fora)
     body.add(strip(m.front, hp.faceW, 2, [hp.faceH, -1], [hp.faceH - 13, 12]));
 
