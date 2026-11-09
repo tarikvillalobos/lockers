@@ -18,7 +18,8 @@ const canvas = renderer.domElement;
 
 const mats = createMaterials();
 
-// Dois modelos do mesmo armário: 1 = fechaduras de tambor com chave, 2 = solenoides eletrônicos (smartlocker)
+// Três modelos do mesmo armário: 1 = fechaduras de tambor com chave, 2 = solenoides eletrônicos (smartlocker),
+// 3 = como o 2 e, além disso, solenoide na gaveta de entrega (basculante)
 let locker, parcels, dims;
 let model = 'cylinder';
 let currentFinish = 'grafite';
@@ -28,7 +29,7 @@ function buildModel(kind) {
     locker.root.traverse((o) => o.geometry?.dispose?.());
   }
   model = kind;
-  locker = new Locker(mats, { lock: kind });
+  locker = new Locker(mats, { lock: kind === 'cylinder' ? 'cylinder' : 'solenoid', hopperLock: kind === 'drawer' });
   scene.add(locker.root);
   locker.buildEdges(new THREE.LineBasicMaterial({ color: 0x1f2226, transparent: true, opacity: 0.55 }));
   locker.setEdges(false);
@@ -120,6 +121,7 @@ const handle = (res) => {
 const modelInfo = {
   cylinder: { btn: 'btnModel1', locks: '3 × tambor com came', title: 'Armário 1 · fechaduras de chave' },
   solenoid: { btn: 'btnModel2', locks: '2 × solenoide com trinco e lingueta + 1 × tambor (tampa da eletrônica)', title: 'Armário 2 · solenoides eletrônicos' },
+  drawer: { btn: 'btnModel3', locks: '3 × solenoide com trinco e lingueta (portas + gaveta) + 1 × tambor (tampa da eletrônica)', title: 'Armário 3 · solenoides, inclusive na gaveta' },
 };
 function refreshModelUi() {
   for (const [k, v] of Object.entries(modelInfo)) $(v.btn).classList.toggle('primary', k === model);
@@ -138,6 +140,7 @@ function switchModel(kind) {
 }
 $('btnModel1').addEventListener('click', () => switchModel('cylinder'));
 $('btnModel2').addEventListener('click', () => switchModel('solenoid'));
+$('btnModel3').addEventListener('click', () => switchModel('drawer'));
 
 // ---------- ações ----------
 const actions = {
@@ -160,7 +163,13 @@ $('btnRetrieve').addEventListener('click', actions.retrieveAll);
 
 const slider = $('angle');
 slider.max = SPEC.hopper.maxAngle;
-slider.addEventListener('input', () => locker.setHopperAngle(parseFloat(slider.value)));
+const HOPPER_LOCKED_MSG = 'Gaveta travada pelo solenoide — use "Abrir basculante" (libera o solenoide)';
+slider.addEventListener('input', () => {
+  if (locker.setHopperAngle(parseFloat(slider.value)) === false) {
+    slider.value = locker.hopper.angle;
+    toast(HOPPER_LOCKED_MSG, true);
+  }
+});
 
 // ---------- toggles ----------
 const toggles = {
@@ -254,7 +263,10 @@ function hint(p) {
   if (!p) return '';
   switch (p.action) {
     case 'hopper':
+      if (locker.hopperLock?.locked) return 'Gaveta travada · clique para liberar o solenoide e abrir';
       return locker.hopperOpen ? 'Fechar basculante · ou arraste' : 'Abrir basculante · ou arraste';
+    case 'hlock':
+      return locker.hopperLock.locked ? 'Liberar solenoide da gaveta' : 'Travar solenoide da gaveta';
     case 'door': {
       const w = p.target.userData.door;
       const name = { front: 'porta frontal', back: 'porta traseira', elec: 'tampa da eletrônica' }[w];
@@ -290,7 +302,10 @@ canvas.addEventListener('pointermove', (e) => {
   if (drag) {
     const dy = e.clientY - drag.y;
     if (Math.abs(dy) > 4) drag.moved = true;
-    if (drag.moved) locker.setHopperAngle(drag.a0 + dy * 0.3, true);
+    if (drag.moved && locker.setHopperAngle(drag.a0 + dy * 0.3, true) === false && !drag.denied) {
+      drag.denied = true;
+      toast(HOPPER_LOCKED_MSG, true);
+    }
     return;
   }
   if (e.buttons) {
@@ -324,6 +339,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (!click || !p) return;
   if (p.action === 'door') actions.door(p.target.userData.door);
   else if (p.action === 'lock') actions.lock(p.target.userData.door);
+  else if (p.action === 'hlock') locker.toggleHopperLock().then(handle);
   else if (p.action === 'parcel') parcels.retrieve(p.target.userData.item).then(handle);
 });
 
@@ -407,7 +423,7 @@ function setBtn(el, label, key) {
 function updateStatus() {
   const ha = locker.hopper.angle;
   const max = SPEC.hopper.maxAngle;
-  if (ha < 0.3) set(ui.hopper, 'Fechado');
+  if (ha < 0.3) set(ui.hopper, locker.hopperLock ? (locker.hopperLock.locked ? 'Fechado · travado' : 'Fechado · liberado') : 'Fechado');
   else if (Math.abs(ha - locker.hopper.target) > 0.1) set(ui.hopper, `Movendo ${ha.toFixed(0)}°`, 'warn');
   else set(ui.hopper, ha >= max - 0.1 ? `Aberto ${max}°` : `Aberto ${ha.toFixed(0)}°`, 'on');
 

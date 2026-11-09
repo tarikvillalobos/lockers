@@ -117,6 +117,8 @@ export class Locker {
   constructor(materials, opts = {}) {
     this.m = materials;
     this.lockType = opts.lock ?? 'cylinder';
+    this.hopperSolenoid = !!opts.hopperLock; // Armário 3: a gaveta (basculante) também trava com solenoide
+    this.hopperLock = null; // { locked, busy, pin, relock }
     this.root = new THREE.Group();
     this.root.name = 'Locker';
     this.root.scale.setScalar(0.001); // modelado em mm, cena em metros
@@ -208,10 +210,11 @@ export class Locker {
       // montante frontal (dobra da lateral) + retorno interno
       const sx0 = side < 0 ? -ix : ix - stile.w;
       const sx1 = side < 0 ? -ix + stile.w : ix;
-      const wf = sol && side < 0 ? [win(yFront, null)] : []; // corte na largura toda do montante
+      const hopWin = this.hopperSolenoid && side < 0 ? [win(SPEC.hopper.cornerY + SPEC.hopper.pivot.y + SPEC.hopper.lockY, null)] : [];
+      const wf = (sol && side < 0 ? [win(yFront, null)] : []).concat(hopWin); // corte na largura toda do montante
       cutBox(g, m.body, sx0, sx1, yb, yt, hz - sheet, hz, wf);
       const rx0 = side < 0 ? -ix + stile.w - sheet : ix - stile.w;
-      cutBox(g, m.body, rx0, rx0 + sheet, yb, yt, hz - sheet - stile.ret, hz - sheet, sol && side < 0 ? [win(yFront, null)] : []);
+      cutBox(g, m.body, rx0, rx0 + sheet, yb, yt, hz - sheet - stile.ret, hz - sheet, (sol && side < 0 ? [win(yFront, null)] : []).concat(hopWin));
       // dobra traseira (vira o montante da porta traseira)
       const bx0 = side < 0 ? -ix : ix - stile.w;
       const bx1 = side < 0 ? -ix + stile.w : ix;
@@ -375,11 +378,18 @@ export class Locker {
       body.add(sc);
     }
 
-    // corpo preto na chapa lateral (referencial da peça: x −203..−187, z 100..156); clicável (travar/destravar)
+    // corpo preto na chapa lateral; clicável (travar/destravar)
+    const { grp, pin } = this._solenoidBody(part, yc, { action: 'lock', door: which });
+    ds.plunger = pin;
+  }
+
+  // Corpo preto do solenoide (referencial da peça: x −203..−187, z 100..156, centro em y = yc), com fenda
+  // de verdade para o U, parafusos, conector com fio e o pino do trinco (sobe 6 mm ao destravar).
+  _solenoidBody(parent, yc, userData) {
+    const m = this.m;
     const grp = new THREE.Group();
-    grp.userData.action = 'lock';
-    grp.userData.door = which;
-    part.add(grp);
+    Object.assign(grp.userData, userData);
+    parent.add(grp);
     const blackMat = this._solBlack ?? (this._solBlack = new THREE.MeshStandardMaterial({ color: 0x0d0d0f, roughness: 0.55, metalness: 0.5 }));
     grp.add(box(blackMat, -203, -187, yc - 24, yc + 24, 100, 138)); // corpo (fundo da fenda em z = 138)
     grp.add(box(blackMat, -203, -187, yc + 8, yc + 24, 138, 156)); // acima da fenda
@@ -395,11 +405,24 @@ export class Locker {
     const wire = cylZ(this._solWire ?? (this._solWire = new THREE.MeshStandardMaterial({ color: 0xc8261e, roughness: 0.6 })), 1.3, 70, 90, -195, yc - 13, 8);
     wire.userData.noEdges = true;
     grp.add(wire);
-    // pino do trinco (sobe 6 mm quando o solenoide destrava)
     const pin = new THREE.Group();
     pin.add(cylY(m.chrome, 2.6, yc + 24, yc + 34, -195, 112, 12));
     grp.add(pin);
-    ds.plunger = pin;
+    return { grp, pin };
+  }
+
+  // Solenoide da gaveta (basculante de entrega): corpo na chapa lateral esquerda e lingueta presa na face
+  // de dentro da porta, perto do topo. A lingueta passa pelas janelas do montante quando a porta abre.
+  _buildHopperLock(mech, pivot) {
+    const m = this.m;
+    const yl = SPEC.hopper.lockY; // altura da trava acima da dobradiça (referencial da dobradiça)
+    const yc = this.hopperPivotPos.y + yl;
+    pivot.add(box(m.galv, -186, -178, yl - 5, yl + 5, -18, 2)); // braço da porta até atrás da chapa do montante
+    pivot.add(box(m.galv, -198, -178, yl - 13, yl + 13, -20, -18)); // chapa da lingueta
+    for (const x of [-197, -192]) pivot.add(cylZ(m.chrome, 2, -46, -20, x, yl, 12));
+    pivot.add(cylX(m.chrome, 2, -197, -192, yl, -46, 12));
+    const { pin } = this._solenoidBody(mech, yc, { action: 'hlock' });
+    this.hopperLock = { locked: true, busy: false, pin, relock: 0 };
   }
 
   _buildMechanism() {
@@ -431,6 +454,8 @@ export class Locker {
     this._decal(body, 'Encomendas', 150, 30, fw - 88, hp.faceH - band / 2 - 4, 0.4, { w: 640, h: 128, size: 76, align: 'right', weight: 400, spacing: 2 });
     // reforço interno da porta
     body.add(box(m.front, -fw + 10, fw - 10, 20, 34, -14, -2));
+
+    if (this.hopperSolenoid) this._buildHopperLock(mech, pivot);
 
     // eixo da dobradiça + pinos onde a biela prende na porta
     pivot.add(cylX(m.chrome, 4.5, -186, 186, 0, 0, 16));
@@ -609,14 +634,67 @@ export class Locker {
     return ['front', 'back'].some((k) => this.doors[k].angle >= minAngle);
   }
 
+  // Retorna false se o solenoide da gaveta (Armário 3) está travado e o pedido era para abrir.
   setHopperAngle(deg, immediate = false) {
     const v = THREE.MathUtils.clamp(deg, 0, SPEC.hopper.maxAngle);
+    if (this.hopperLock?.locked && v > 0.5) {
+      sfx.deny();
+      return false;
+    }
     this.hopper.target = v;
     if (immediate) this.hopper.angle = v;
+    return true;
+  }
+
+  // Libera o solenoide da gaveta (comando de entrega): o pino do trinco sobe e a porta fica livre.
+  async unlockHopper() {
+    const hl = this.hopperLock;
+    if (!hl || !hl.locked || hl.busy) return;
+    hl.busy = true;
+    await tween(0.18, () => {}, ease.linear);
+    await tween(0.22, (e) => (hl.pin.position.y = 6 * e), ease.outCubic);
+    sfx.lock();
+    hl.locked = false;
+    hl.busy = false;
+    hl.relock = 0;
+  }
+
+  async lockHopper() {
+    const hl = this.hopperLock;
+    if (!hl || hl.locked || hl.busy || this.hopper.angle > 0.3) return;
+    hl.busy = true;
+    await tween(0.22, (e) => (hl.pin.position.y = 6 * (1 - e)), ease.inQuad);
+    sfx.lock();
+    hl.locked = true;
+    hl.busy = false;
+  }
+
+  // Garante o solenoide liberado antes de abrir (usado pelo depósito e pelo botão de abrir)
+  async authorizeHopper() {
+    if (this.hopperLock?.locked) await this.unlockHopper();
+    else if (this.hopperLock?.busy) await new Promise((res) => setTimeout(res, 300));
+  }
+
+  async toggleHopperLock() {
+    const hl = this.hopperLock;
+    if (!hl) return { ok: false };
+    if (this.hopper.angle > 0.5 || this.hopper.target > 0.5) return { ok: false, msg: 'Feche o basculante antes de travar' };
+    if (hl.locked) await this.unlockHopper();
+    else await this.lockHopper();
+    return { ok: true };
   }
 
   toggleHopper() {
-    this.setHopperAngle(this.hopperOpen ? 0 : SPEC.hopper.maxAngle);
+    if (this.hopperOpen) {
+      this.setHopperAngle(0);
+      return { ok: true };
+    }
+    if (this.hopperLock?.locked) {
+      // abrir = comando de entrega: libera o solenoide e depois abre
+      this.authorizeHopper().then(() => this.setHopperAngle(SPEC.hopper.maxAngle));
+      return { ok: true, msg: 'Solenoide da gaveta liberado' };
+    }
+    this.setHopperAngle(SPEC.hopper.maxAngle);
     return { ok: true };
   }
 
@@ -731,6 +809,11 @@ export class Locker {
   }
 
   update(dt) {
+    const hl = this.hopperLock;
+    if (hl && !hl.locked && !hl.busy && this.hopper.target === 0 && this.hopper.angle < 0.3) {
+      hl.relock += dt; // fechou: o solenoide trava de novo sozinho
+      if (hl.relock > 0.6) this.lockHopper();
+    } else if (hl) hl.relock = 0;
     const prevH = this.hopper.angle;
     this.hopper.angle = approach(this.hopper.angle, this.hopper.target, dt, 6, 40);
     if (prevH > 0.5 && this.hopper.angle === 0 && this.hopper.target === 0) sfx.metal();

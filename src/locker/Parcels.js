@@ -126,6 +126,7 @@ export class Parcels {
     if (!dims) return { ok: false, msg: 'Locker cheio — retire as encomendas' };
     this.busy = true;
     const L = this.locker;
+    await L.authorizeHopper(); // Armário 3: o comando de entrega libera o solenoide da gaveta
     L.setHopperAngle(SPEC.hopper.maxAngle);
     await L.waitHopper();
 
