@@ -57,12 +57,12 @@ export const SPEC = {
   // Os pinos foram resolvidos numericamente para a placa ir de 0° a 90° quase linear.
   tray: {
     pivot: { z: 60, y: 735 }, // eixo fixo (z, y)
-    plate: [[85, -95], [85, 95], [-140, 95], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
-    front: 85, // borda da frente do piso (rel. ao eixo): raio ≤ 126 mm, não sai pela frente ao girar
+    plate: [[123, -95], [123, 55], [83, 95], [-140, 95], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
+    front: 123, // borda da frente do piso (rel. ao eixo): com a bandeja horizontal fica rente à dobradiça da porta (z = 183)
     back: -210, // borda de trás do piso
     floorY: -93, // face de cima do piso (rel. ao eixo)
     halfW: 178, // tudo que gira fica dentro do vão livre (±186) entre os montantes
-    length: 295, // frente → fundo do piso
+    length: 333, // frente → fundo do piso
     topY: 642, // face de cima do piso com a bandeja na horizontal (= batente traseiro)
     closeAngle: 90, // giro com a porta fechada (graus)
     pin: [70.165, 33.198], // pino da biela da porta, no referencial da placa (z, y)

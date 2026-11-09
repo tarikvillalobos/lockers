@@ -384,9 +384,6 @@ export class Locker {
       mech.add(box(m.galv, ...sx(186, 203), P.y - 8, P.y + 8, P.z - 8, P.z + 8));
     }
 
-    // soleira fixa entre a porta (dobradiça) e o piso da bandeja: nada cai pela fresta
-    mech.add(box(m.mech, -tr.halfW, tr.halfW, tr.topY - 6, tr.topY - 2, P.z + tr.front, hz - 4));
-
     // batente fixo no fundo: cobre a ponta de trás do piso quando ele está horizontal
     const ix = SPEC.W / 2 - SPEC.sheet;
     this.parts.back.add(box(m.mech, -ix, ix, tr.topY + 1, tr.topY + 3, -hz + 4, -hz + 4 + tr.rearStop));
