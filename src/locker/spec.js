@@ -5,7 +5,7 @@
 // Basculante: altura da face (antes 300 mm) e posição. As travessas inferior e
 // superior acompanham para fechar a frente logo abaixo e acima dele; o mecanismo
 // (pino, biela, defletor) é relativo à quina e sobe junto.
-const HOPPER_Y = 632; // quina inferior-frontal da face (antes 572)
+const HOPPER_Y = 662; // quina inferior-frontal da face (antes 572)
 const HOPPER_FACE_H = 240;
 
 export const SPEC = {
