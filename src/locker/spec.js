@@ -70,11 +70,11 @@ export const SPEC = {
     rearStop: 16, // batente na porta traseira que cobre a ponta do piso
   },
 
-  // Aba superior (viseira): articulada na face de baixo da prateleira de cartas e acionada por uma
-  // segunda biela que sai de um pino da placa. Com a porta aberta fica deitada rente à prateleira;
-  // ao fechar desce até a vertical. Comprimento 160 mm: o maior que ainda cabe dentro da frente
-  // do gabinete (a ponta chega a z = 183 mm) — quanto maior, mais perto do piso a ponta passa.
-  flap: { z: 23.49, y: 868, len: 160, g: 71.372, pin: [-2.63, 70.68] },
+  // Aba superior (viseira): articulada logo abaixo da prateleira de cartas e acionada por uma
+  // segunda biela que sai de um pino da placa. Com a porta aberta fica deitada (por baixo do batente
+  // superior); ao fechar desce até a vertical. Comprimento 190 mm: a ponta passa a 16 mm do piso da
+  // bandeja (acima de ~195 mm ela atravessaria o piso) e vai de perto da tampa de baixo.
+  flap: { z: 23.49, y: 858, len: 190, g: 71.372, pin: [-2.63, 70.68] },
 
   // Bielas chatas (largura, espessura, sobra nas pontas; x do centro de cada uma)
   arm: { w: 9, t: 3, over: 7, x1: 182.5, x2: 175.5 }, // biela 1 por fora da placa, biela 2 por dentro
