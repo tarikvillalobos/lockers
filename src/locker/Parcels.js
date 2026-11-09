@@ -175,14 +175,26 @@ export class Parcels {
     const q0 = p.quaternion.clone();
     const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'));
     const target = new THREE.Vector3(item.x, item.base + item.h / 2, item.z);
-    const drop = Math.max(10, p0.y - target.y);
-    const T = THREE.MathUtils.clamp(Math.sqrt((2 * drop) / 9810) * 1.9, 0.35, 0.85);
-    return tween(T, (_, k) => {
-      p.position.x = THREE.MathUtils.lerp(p0.x, target.x, ease.outQuad(k));
-      p.position.z = THREE.MathUtils.lerp(p0.z, target.z, ease.outQuad(k));
-      p.position.y = p0.y + (target.y - p0.y) * k * k;
-      p.quaternion.slerpQuaternions(q0, q1, ease.outCubic(Math.min(1, k * 1.25)));
-    }, ease.linear).then(() => {
+    // 1) escorrega pela rampa até a borda de trás; 2) cai até o ponto de apoio
+    const [ez, ey] = SPEC.chute.to;
+    const w = new THREE.Vector3(THREE.MathUtils.lerp(p0.x, target.x, 0.4), ey + 55, ez - 15);
+    const qm = new THREE.Quaternion().slerpQuaternions(q0, q1, 0.45);
+    const drop = Math.max(10, w.y - target.y);
+    const T = THREE.MathUtils.clamp(Math.sqrt((2 * drop) / 9810) * 1.9, 0.3, 0.75);
+    return tween(0.38, (e) => {
+      p.position.lerpVectors(p0, w, e);
+      p.quaternion.slerpQuaternions(q0, qm, e);
+    }, ease.inQuad)
+      .then(() => {
+        sfx.metal();
+        return tween(T, (_, k) => {
+          p.position.x = THREE.MathUtils.lerp(w.x, target.x, ease.outQuad(k));
+          p.position.z = THREE.MathUtils.lerp(w.z, target.z, ease.outQuad(k));
+          p.position.y = w.y + (target.y - w.y) * k * k;
+          p.quaternion.slerpQuaternions(qm, q1, ease.outCubic(Math.min(1, k * 1.25)));
+        }, ease.linear);
+      })
+      .then(() => {
       sfx.thud(Math.min(1, drop / 400));
       return tween(0.22, (_, k) => {
         p.position.y = target.y + Math.sin(Math.PI * k) * 7 * (1 - k);

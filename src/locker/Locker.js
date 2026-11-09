@@ -351,11 +351,24 @@ export class Locker {
     this.baffle = baffle;
     const bw = hp.sideX;
     baffle.add(box(m.mech, -bw, bw, -bf.length, bf.top, -1, 1));
-    baffle.add(box(m.mech, -bw, bw, -bf.length, -bf.length + 2, 1, 16)); // dobra de reforço
     baffle.add(cylX(m.chrome, 5, -203, 203, 0, 0, 16)); // eixo
     for (const side of [-1, 1]) {
       baffle.add(cylX(m.chrome, 4.5, side < 0 ? -197 : bw, side < 0 ? -bw : 197, -this.baffleR, 0, 16));
       mech.add(box(m.galv, side < 0 ? -203 : 194, side < 0 ? -194 : 203, B.y - 16, B.y + 16, B.x - 14, B.x + 14));
+    }
+
+    // ---- Rampa fixa sob o basculante ----
+    const ch = SPEC.chute;
+    const [cz0, cy0] = ch.from;
+    const [cz1, cy1] = ch.to;
+    mech.add(strip(m.mech, ch.halfW * 2, 2, [cy0, cz0], [cy1, cz1]));
+    // cantoneiras de fixação nas laterais (abaixo da chapa, longe das bielas)
+    for (const side of [-1, 1]) {
+      for (const t of [0.15, 0.8]) {
+        const z = THREE.MathUtils.lerp(cz0, cz1, t);
+        const y = THREE.MathUtils.lerp(cy0, cy1, t);
+        mech.add(box(m.galv, side < 0 ? -203 : ch.halfW, side < 0 ? -ch.halfW : 203, y - 16, y - 2, z - 14, z + 14));
+      }
     }
 
     // ---- Bielas ----

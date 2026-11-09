@@ -55,6 +55,10 @@ export const SPEC = {
 
   link: { x: 189, t: 3, w: 16 },
 
+  // Rampa fixa sob o basculante: fecha o vão até o pé do defletor (anti-furto)
+  // e conduz a encomenda para o fundo. Pontos em (z, y).
+  chute: { from: [184, 560], to: [15, 478], halfW: 183 },
+
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira
   bay: { x0: -199, x1: 199, z0: -166, z1: 150, floor: 22, maxTop: 420 },
