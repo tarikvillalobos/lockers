@@ -2,9 +2,10 @@
 // Eixos: X = largura (esq → dir, visto de frente), Y = altura, Z = profundidade (+Z = frente).
 // Fonte: desenhos SolidWorks (410 × 380 × 1020 mm) + vistas laterais do mecanismo.
 
-// Basculante: altura da face (antes 300 mm). A travessa superior acompanha
-// para fechar a frente logo acima dele.
-const HOPPER_Y = 572; // quina inferior-frontal da face
+// Basculante: altura da face (antes 300 mm) e posição. As travessas inferior e
+// superior acompanham para fechar a frente logo abaixo e acima dele; o mecanismo
+// (pino, biela, defletor) é relativo à quina e sobe junto.
+const HOPPER_Y = 632; // quina inferior-frontal da face (antes 572)
 const HOPPER_FACE_H = 240;
 
 export const SPEC = {
@@ -26,11 +27,11 @@ export const SPEC = {
     lock: { x: -332, y: 348 }, // fechadura tambor (coordenadas locais da porta)
   },
 
-  lowerRail: { y0: 517, y1: 566 },
+  lowerRail: { y0: 517, y1: HOPPER_Y - 6 },
   upperRail: { y0: HOPPER_Y + HOPPER_FACE_H + 6, y1: 926 },
   header: { y0: 926, y1: 1000 },
 
-  // Basculante (gaveta de depósito). Quina inferior-frontal da face em y=572, z=190.
+  // Basculante (gaveta de depósito). Quina inferior-frontal da face em y=HOPPER_Y, z=190.
   hopper: {
     cornerY: HOPPER_Y,
     faceH: HOPPER_FACE_H,
