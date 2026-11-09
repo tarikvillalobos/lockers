@@ -17,8 +17,8 @@ npm run build    # gera dist/ estático
 
 | Peça | Comportamento |
 | --- | --- |
-| **Fachada (base: Milkcan Hamilton)** | De cima para baixo: módulo eletrônico liso de 5 cm, 3 batentes, porta de encomendas ripada, frente ripada e porta de baixo ripada. Atrás, a mesma porta ripada da frente (espelhada) e, em cima, uma tampa de 368 × 50 mm com fechadura de chave que dá acesso ao módulo eletrônico. |
-| **Módulo eletrônico** | Compartimento de 50 mm logo abaixo do tampo, separado da boca por uma chapa. Só abre por trás, pela tampa com chave (`V` tranca/destranca, `N` abre). Não dá acesso às encomendas. |
+| **Fachada (base: Milkcan Hamilton)** | De cima para baixo: módulo eletrônico liso de 5 cm, 3 batentes, porta de encomendas ripada, frente ripada e porta de baixo ripada. Atrás, a mesma porta ripada da frente (espelhada) e, em cima, uma tampa de 368 × 100 mm com fechadura de chave que dá acesso ao módulo eletrônico. |
+| **Módulo eletrônico** | Compartimento logo abaixo do tampo, em degrau: 50 mm de altura na frente e 100 mm no fundo (onde fica a tampa). Separado da boca por uma chapa. Só abre por trás, pela tampa com chave (`V` tranca/destranca, `N` abre). Não dá acesso às encomendas. |
 | **Porta de depósito** (basculante) | Dobradiça embaixo; abre até 90° e vira prateleira. Clique ou arraste. |
 | **Bandeja giratória anti-furto** | Duas placas laterais + piso formam um "U" que gira num eixo fixo no meio da boca. Com a porta aberta (90°) as placas ficam em pé e o piso, horizontal e contínuo com a porta. Uma biela chata liga um pino da porta a um pino da placa: ao fechar, a bandeja gira 90° (o piso vira parede logo atrás da porta) e a encomenda escorrega e cai no compartimento. Uma segunda biela, presa na placa, desce a aba superior (viseira) até a vertical. Inspirado no mecanismo Milkcan; os pinos foram resolvidos numericamente (`spec.js`). |
 | **Fechaduras tambor** (frente e trás) | Clique: a chave entra, gira 90° e o came libera/trava o montante. Cada porta tem a sua. |

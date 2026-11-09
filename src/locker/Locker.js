@@ -199,7 +199,7 @@ export class Locker {
     const el = SPEC.elec;
     const fx = ix - stile.w; // borda interna dos montantes (187)
     const topY = bd.y0 + bd.h + 3;
-    const skinTop = el.y0 - 3;
+    const skinTop = el.rear.y0 - 3;
     const backStrip = box(m.shell, -ix, ix, topY, skinTop, -hz + sheet, -hz + sheet * 2);
     backStrip.userData.shell = true;
     back.add(backStrip);
@@ -208,7 +208,7 @@ export class Locker {
     for (const side of [-1, 1]) {
       const x0 = side < 0 ? -fx - sheet : fx;
       back.add(box(m.body, x0, x0 + sheet, yb, topY, -hz + sheet, -hz + sheet + stile.ret));
-      back.add(box(m.body, x0, x0 + sheet, el.y0, yt, -hz + sheet, -hz + sheet + stile.ret)); // batente da came da tampa
+      back.add(box(m.body, x0, x0 + sheet, el.rear.y0, yt, -hz + sheet, -hz + sheet + stile.ret)); // batente da came da tampa
     }
   }
 
@@ -252,7 +252,7 @@ export class Locker {
     const cfg = {
       front: { y0: door.y0, h: door.h, lockY: door.lock.y, slats: true, part: 'door', off: 440 },
       back: { y0: backDoor.y0, h: backDoor.h, lockY: backDoor.lockY, slats: true, part: 'doorBack', off: -440 },
-      elec: { y0: elec.y0, h: elec.y1 - elec.y0, lockY: (elec.y1 - elec.y0) / 2, slats: false, part: 'doorElec', off: -440 },
+      elec: { y0: elec.rear.y0, h: elec.y1 - elec.rear.y0, lockY: (elec.y1 - elec.rear.y0) / 2, slats: false, part: 'doorElec', off: -440 },
     }[which];
     const y0 = cfg.y0;
     const part = this._part(cfg.part, [0, 0, cfg.off]);
@@ -431,7 +431,10 @@ export class Locker {
     const el = SPEC.elec;
     const ur = SPEC.upperRail;
     const iw = SPEC.W / 2 - SPEC.sheet;
-    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, el.ceil.z0, el.ceil.z1));
+    const zs = el.rear.zStep;
+    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, zs, el.ceil.z1)); // teto da boca (frente: 50 mm)
+    mech.add(box(m.mech, -iw + 1, iw - 1, el.rear.y0, el.rear.y0 + 2, el.ceil.z0, zs)); // piso do fundo (100 mm)
+    mech.add(box(m.mech, -iw + 1, iw - 1, el.rear.y0, ur.y1 + 2, zs - 2, zs)); // degrau
     // placa eletrônica (ilustrativa), sobre espaçadores, para aparecer no raio-X
     mech.add(box(m.dark, -150, 150, el.y0 + 6, el.y0 + 8, -120, 120));
     for (const [cx, cz, w, d] of [[-90, -30, 40, 28], [20, 30, 56, 36], [100, -50, 30, 30]]) {
