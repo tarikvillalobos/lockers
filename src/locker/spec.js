@@ -52,7 +52,7 @@ export const SPEC = {
     faceW: 372,
     pivot: { y: 4, u: 4 }, // eixo da dobradiça relativo à quina (u = para trás)
     maxAngle: 90,
-    lockY: 170, // altura do solenoide da gaveta (Armário 3) acima da dobradiça
+    lockY: 211.5, // altura do U do solenoide da gaveta (Armário 3) acima da dobradiça: topo da porta, no meio
     pin: { dy: 74.714, z: -3 }, // pino da biela na porta (a 75 mm da dobradiça, no referencial da dobradiça)
   },
 

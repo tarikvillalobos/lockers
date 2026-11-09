@@ -210,11 +210,10 @@ export class Locker {
       // montante frontal (dobra da lateral) + retorno interno
       const sx0 = side < 0 ? -ix : ix - stile.w;
       const sx1 = side < 0 ? -ix + stile.w : ix;
-      const hopWin = this.hopperSolenoid && side < 0 ? [win(SPEC.hopper.cornerY + SPEC.hopper.pivot.y + SPEC.hopper.lockY, null)] : [];
-      const wf = (sol && side < 0 ? [win(yFront, null)] : []).concat(hopWin); // corte na largura toda do montante
+      const wf = sol && side < 0 ? [win(yFront, null)] : []; // corte na largura toda do montante
       cutBox(g, m.body, sx0, sx1, yb, yt, hz - sheet, hz, wf);
       const rx0 = side < 0 ? -ix + stile.w - sheet : ix - stile.w;
-      cutBox(g, m.body, rx0, rx0 + sheet, yb, yt, hz - sheet - stile.ret, hz - sheet, (sol && side < 0 ? [win(yFront, null)] : []).concat(hopWin));
+      cutBox(g, m.body, rx0, rx0 + sheet, yb, yt, hz - sheet - stile.ret, hz - sheet, sol && side < 0 ? [win(yFront, null)] : []);
       // dobra traseira (vira o montante da porta traseira)
       const bx0 = side < 0 ? -ix : ix - stile.w;
       const bx1 = side < 0 ? -ix + stile.w : ix;
@@ -379,49 +378,57 @@ export class Locker {
     }
 
     // corpo preto na chapa lateral; clicável (travar/destravar)
-    const { grp, pin } = this._solenoidBody(part, yc, { action: 'lock', door: which });
+    const { pin } = this._solenoidBody(part, { x: -195, y: yc, zb: 100 }, { action: 'lock', door: which });
     ds.plunger = pin;
   }
 
-  // Corpo preto do solenoide (referencial da peça: x −203..−187, z 100..156, centro em y = yc), com fenda
-  // de verdade para o U, parafusos, conector com fio e o pino do trinco (sobe 6 mm ao destravar).
-  _solenoidBody(parent, yc, userData) {
+  // Corpo preto do solenoide, modelado em coordenadas locais: espessura em x (−8..8), altura em y (±24) e
+  // comprimento em z (zb..zb+56) com a fenda do U abrindo para +z (fundo da fenda em zb+38). Tem fenda de
+  // verdade, parafusos, conector com fio e o pino do trinco (sobe 6 mm ao destravar).
+  //   parede: fixo na chapa lateral (x = −195) | teto: girado 90° em z, preso no teto da boca (x = 0)
+  _solenoidBody(parent, { x = 0, y, zb = 100, roof = false }, userData) {
     const m = this.m;
     const grp = new THREE.Group();
     Object.assign(grp.userData, userData);
+    grp.position.set(x, y, 0);
+    if (roof) grp.rotation.z = Math.PI / 2;
     parent.add(grp);
     const blackMat = this._solBlack ?? (this._solBlack = new THREE.MeshStandardMaterial({ color: 0x0d0d0f, roughness: 0.55, metalness: 0.5 }));
-    grp.add(box(blackMat, -203, -187, yc - 24, yc + 24, 100, 138)); // corpo (fundo da fenda em z = 138)
-    grp.add(box(blackMat, -203, -187, yc + 8, yc + 24, 138, 156)); // acima da fenda
-    grp.add(box(blackMat, -203, -187, yc - 24, yc - 8, 138, 156)); // abaixo da fenda
-    grp.add(box(blackMat, -203, -201, yc - 8, yc + 8, 138, 156)); // lado de fora
-    grp.add(box(blackMat, -189, -187, yc - 8, yc + 8, 138, 156)); // lado de dentro
-    for (const [z, dy] of [[112, 12], [146, -14]]) {
-      const sc = cylX(m.chrome, 3, -187, -185.6, yc + dy, z, 12);
+    grp.add(box(blackMat, -8, 8, -24, 24, zb, zb + 38)); // corpo (fundo da fenda)
+    grp.add(box(blackMat, -8, 8, 8, 24, zb + 38, zb + 56)); // acima da fenda
+    grp.add(box(blackMat, -8, 8, -24, -8, zb + 38, zb + 56)); // abaixo da fenda
+    grp.add(box(blackMat, -8, -6, -8, 8, zb + 38, zb + 56)); // lado de fora
+    grp.add(box(blackMat, 6, 8, -8, 8, zb + 38, zb + 56)); // lado de dentro
+    for (const [dz, dy] of [[12, 12], [46, -14]]) {
+      const sc = cylX(m.chrome, 3, 8, 9.4, dy, zb + dz, 12);
       sc.userData.noEdges = true;
       grp.add(sc);
     }
-    grp.add(box(blackMat, -199, -191, yc - 18, yc - 8, 90, 100)); // conector
-    const wire = cylZ(this._solWire ?? (this._solWire = new THREE.MeshStandardMaterial({ color: 0xc8261e, roughness: 0.6 })), 1.3, 70, 90, -195, yc - 13, 8);
+    grp.add(box(blackMat, -4, 4, -18, -8, zb - 10, zb)); // conector
+    const wire = cylZ(this._solWire ?? (this._solWire = new THREE.MeshStandardMaterial({ color: 0xc8261e, roughness: 0.6 })), 1.3, zb - 30, zb - 10, 0, -13, 8);
     wire.userData.noEdges = true;
     grp.add(wire);
     const pin = new THREE.Group();
-    pin.add(cylY(m.chrome, 2.6, yc + 24, yc + 34, -195, 112, 12));
+    pin.add(cylY(m.chrome, 2.6, 24, 34, 0, zb + 12, 12));
     grp.add(pin);
     return { grp, pin };
   }
 
-  // Solenoide da gaveta (basculante de entrega): corpo na chapa lateral esquerda e lingueta presa na face
-  // de dentro da porta, perto do topo. A lingueta passa pelas janelas do montante quando a porta abre.
+  // Solenoide da gaveta (basculante de entrega), no meio da borda de cima da porta: o corpo preto fica preso
+  // no teto da boca (girado 90°, fenda para +z), logo acima da aba, e a lingueta (chapa + grampo em U) fica
+  // na face de dentro do topo da porta. Ao fechar, o U entra na fenda; ao abrir, sai para +z.
   _buildHopperLock(mech, pivot) {
     const m = this.m;
-    const yl = SPEC.hopper.lockY; // altura da trava acima da dobradiça (referencial da dobradiça)
+    const yl = SPEC.hopper.lockY; // altura do U acima da dobradiça (referencial da dobradiça)
     const yc = this.hopperPivotPos.y + yl;
-    pivot.add(box(m.galv, -186, -178, yl - 5, yl + 5, -18, 2)); // braço da porta até atrás da chapa do montante
-    pivot.add(box(m.galv, -198, -178, yl - 13, yl + 13, -20, -18)); // chapa da lingueta
-    for (const x of [-197, -192]) pivot.add(cylZ(m.chrome, 2, -46, -20, x, yl, 12));
-    pivot.add(cylX(m.chrome, 2, -197, -192, yl, -46, 12));
-    const { pin } = this._solenoidBody(mech, yc, { action: 'hlock' });
+    pivot.add(box(m.galv, -16, 16, yl - 6, yl + 4, 0, 2)); // chapa presa na face de dentro do topo da porta
+    for (const x of [-3, 3]) pivot.add(cylZ(m.chrome, 2, -24, 0, x, yl, 12));
+    pivot.add(cylX(m.chrome, 2, -3, 3, yl, -24, 12));
+    const { pin } = this._solenoidBody(mech, { x: 0, y: yc, zb: 120, roof: true }, { action: 'hlock' });
+    // espaçadores até a rampa do teto (a rampa sobe para a frente)
+    const { elec: el } = SPEC;
+    const rampUnder = (z) => el.y0 - ((el.y0 - el.rear.y0) * (el.ceil.z1 - z)) / (el.ceil.z1 - el.ceil.z0) - 1;
+    for (const x of [-19, 19]) mech.add(box(m.galv, x - 2, x + 2, yc + 8, rampUnder(169), 166, 172));
     this.hopperLock = { locked: true, busy: false, pin, relock: 0 };
   }
 
