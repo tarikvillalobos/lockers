@@ -88,6 +88,20 @@ function solveAngle(A, O, w, L, guess) {
   return Math.abs(wrap(c1 - guess)) <= Math.abs(wrap(c2 - guess)) ? c1 : c2;
 }
 
+// Caixa com janelas: wins = [{ y: [a, b], x: [c, d] | null }]. Sem x, a janela corta a espessura toda.
+function cutBox(g, mat, x0, x1, y0, y1, z0, z1, wins = []) {
+  let y = y0;
+  for (const w of [...wins].sort((a, b) => a.y[0] - b.y[0])) {
+    if (w.y[0] > y) g.add(box(mat, x0, x1, y, w.y[0], z0, z1));
+    if (w.x) {
+      if (w.x[0] > x0) g.add(box(mat, x0, w.x[0], w.y[0], w.y[1], z0, z1));
+      if (w.x[1] < x1) g.add(box(mat, w.x[1], x1, w.y[0], w.y[1], z0, z1));
+    }
+    y = w.y[1];
+  }
+  if (y1 > y) g.add(box(mat, x0, x1, y, y1, z0, z1));
+}
+
 function approach(cur, target, dt, rate = 7, minSpeed = 30) {
   const diff = target - cur;
   if (Math.abs(diff) < 0.02) return target;
@@ -178,6 +192,14 @@ export class Locker {
       yt = SPEC.H - cap.h;
     const ix = hx - sheet; // face interna das laterais
 
+    // Armário 2 (solenoide): janelas nas chapas do montante, no lado da trava, por onde passa a lingueta
+    // da porta. Frente: lado esquerdo (x < 0); portas de trás: lado direito (x > 0).
+    const sol = this.lockType === 'solenoid';
+    const win = (c, x) => ({ y: [c - 16, c + 16], x });
+    const yFront = SPEC.door.y0 + SPEC.door.lock.y;
+    const yBack = SPEC.backDoor.y0 + SPEC.backDoor.lockY;
+    const yElec = SPEC.elec.rear.y0 + (SPEC.elec.y1 - SPEC.elec.rear.y0) / 2;
+
     for (const side of [-1, 1]) {
       const g = this._part(side < 0 ? 'sideL' : 'sideR', [side * 260, 0, 0]);
       const panel = box(m.shell, side < 0 ? -hx : ix, side < 0 ? -ix : hx, yb, yt, -hz, hz);
@@ -186,11 +208,14 @@ export class Locker {
       // montante frontal (dobra da lateral) + retorno interno
       const sx0 = side < 0 ? -ix : ix - stile.w;
       const sx1 = side < 0 ? -ix + stile.w : ix;
-      g.add(box(m.body, sx0, sx1, yb, yt, hz - sheet, hz));
+      const wf = sol && side < 0 ? [win(yFront, null)] : []; // corte na largura toda do montante
+      cutBox(g, m.body, sx0, sx1, yb, yt, hz - sheet, hz, wf);
       const rx0 = side < 0 ? -ix + stile.w - sheet : ix - stile.w;
-      g.add(box(m.body, rx0, rx0 + sheet, yb, yt, hz - sheet - stile.ret, hz - sheet));
+      cutBox(g, m.body, rx0, rx0 + sheet, yb, yt, hz - sheet - stile.ret, hz - sheet, sol && side < 0 ? [win(yFront, null)] : []);
       // dobra traseira (vira o montante da porta traseira)
-      g.add(box(m.body, side < 0 ? -ix : ix - stile.w, side < 0 ? -ix + stile.w : ix, yb, yt, -hz, -hz + sheet));
+      const bx0 = side < 0 ? -ix : ix - stile.w;
+      const bx1 = side < 0 ? -ix + stile.w : ix;
+      cutBox(g, m.body, bx0, bx1, yb, yt, -hz, -hz + sheet, sol && side > 0 ? [win(yBack, null), win(yElec, null)] : []);
       if (side > 0) this.sidePanelR = panel;
       else this.sidePanelL = panel;
     }
@@ -209,8 +234,8 @@ export class Locker {
     back.add(box(m.body, -fx, fx, skinTop - 2, skinTop, -hz + sheet, -hz + sheet + stile.ret)); // lábio sob a tampa
     for (const side of [-1, 1]) {
       const x0 = side < 0 ? -fx - sheet : fx;
-      back.add(box(m.body, x0, x0 + sheet, yb, topY, -hz + sheet, -hz + sheet + stile.ret));
-      back.add(box(m.body, x0, x0 + sheet, el.rear.y0, yt, -hz + sheet, -hz + sheet + stile.ret)); // batente da came da tampa
+      cutBox(back, m.body, x0, x0 + sheet, yb, topY, -hz + sheet, -hz + sheet + stile.ret, sol && side > 0 ? [win(yBack, null)] : []);
+      cutBox(back, m.body, x0, x0 + sheet, el.rear.y0, yt, -hz + sheet, -hz + sheet + stile.ret, sol && side > 0 ? [win(yElec, null)] : []); // batente da tampa
     }
   }
 
@@ -276,24 +301,7 @@ export class Locker {
     // face + retornos (chapa dobrada)
     body.add(box(m.front, -w, 0, 0, h, -2, 0));
     const sol = this.lockType === 'solenoid';
-    if (!sol) {
-      body.add(box(m.front, -w, -w + 2, 0, h, -d, -2));
-    } else {
-      // retorno do lado da trava com furo para o êmbolo do solenoide
-      const fs = new THREE.Shape();
-      fs.moveTo(-d, 0);
-      fs.lineTo(-2, 0);
-      fs.lineTo(-2, h);
-      fs.lineTo(-d, h);
-      const hole = new THREE.Path();
-      hole.absarc(-11, cfg.lockY, 4.8, 0, Math.PI * 2, false);
-      fs.holes.push(hole);
-      const fg = new THREE.ExtrudeGeometry(fs, { depth: 2, bevelEnabled: false });
-      fg.rotateY(-Math.PI / 2); // (z, y) no plano do retorno, extrusão em −X
-      const fl2 = mesh(fg, m.front);
-      fl2.position.x = -w + 2;
-      body.add(fl2);
-    }
+    body.add(box(m.front, -w, -w + 2, 0, h, -d, -2));
     body.add(box(m.front, -2, 0, 0, h, -d, -2));
     body.add(box(m.front, -w + 2, -2, h - 2, h, -d, -2));
     body.add(box(m.front, -w + 2, -2, 0, 2, -d, -2));
@@ -304,7 +312,7 @@ export class Locker {
     // frente ripada (as portas de baixo se confundem com a fachada); a tampa da eletrônica é lisa
     if (cfg.slats) addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
     if (sol) {
-      this._buildSolenoidLock(body, which, cfg, ds);
+      this._buildSolenoidLock(body, part, which, cfg, ds);
       return;
     }
     // Fechadura tambor + came
@@ -346,13 +354,16 @@ export class Locker {
     ds.keyInner = keyInner;
   }
 
-  // Trava eletrônica de smartlocker: módulo externo com leitor + LED (clicável) e, por dentro, um
-  // solenoide fixo na face interna da porta cujo êmbolo atravessa o furo do retorno e encosta no
-  // montante (travada = êmbolo estendido, LED vermelho; destravada = recuado, LED verde).
-  _buildSolenoidLock(body, which, cfg, ds) {
+  // Trava eletrônica de smartlocker (solenoide com trinco): o CORPO PRETO fica preso na chapa lateral e a
+  // LINGUETA (chapa de aço dobrada com um grampo em U) fica na porta. Ao fechar, o U entra na fenda do
+  // corpo; o solenoide libera ou segura o trinco. Por fora há só um módulo com leitor e LED (clicável):
+  // vermelho = travada, âmbar = acionando, verde = destravada. O corpo fica atrás do montante, então a
+  // lingueta passa por uma janela na chapa do montante (ver _buildBody).
+  _buildSolenoidLock(body, part, which, cfg, ds) {
     const m = this.m;
     const L = SPEC.door.lock;
     const y = cfg.lockY;
+    const yc = cfg.y0 + y; // altura do eixo da trava no referencial da peça
     ds.solenoid = true;
 
     // módulo externo
@@ -366,22 +377,43 @@ export class Locker {
     const led = box(ledMat, -11, 11, 2, 6, 4, 5.2);
     led.userData.noEdges = true;
     lock.add(led);
-    const reader = cylZ(m.galv, 8, 4, 4.8, 0, -8);
-    lock.add(reader);
+    lock.add(cylZ(m.galv, 8, 4, 4.8, 0, -8));
     const readerIn = cylZ(m.dark, 5.5, 4.8, 5.2, 0, -8);
     readerIn.userData.noEdges = true;
     lock.add(readerIn);
     ds.ledMat = ledMat;
 
-    // solenoide por dentro: suporte, corpo, flange da bobina e êmbolo
-    body.add(box(m.galv, -344, -316, y - 13, y + 13, -3.5, -2));
-    body.add(cylX(m.dark, 8.5, -346, -318, y, -11, 20));
-    body.add(cylX(m.galv, 9.5, -319, -315, y, -11, 20));
-    const plunger = new THREE.Group();
-    plunger.position.set(0, y, -11);
-    plunger.add(cylX(m.chrome, 3, -373, -346, 0, 0, 14));
-    body.add(plunger);
-    ds.plunger = plunger;
+    // lingueta na porta (referencial da porta): chapa presa na borda de trás da dobra + grampo em U
+    body.add(box(m.galv, -384, -366, y - 13, y + 13, -22, -20));
+    for (const x of [-383, -378]) body.add(cylZ(m.chrome, 2, -50, -22, x, y, 12));
+    body.add(cylX(m.chrome, 2, -383, -378, y, -50, 12));
+    for (const x of [-373.5]) {
+      const sc = cylZ(m.dark, 2.6, -22.8, -22, x, y - 7, 12);
+      sc.userData.noEdges = true;
+      body.add(sc);
+    }
+
+    // corpo preto na chapa lateral (referencial da peça: x −203..−187, z 100..156)
+    const blackMat = this._solBlack ?? (this._solBlack = new THREE.MeshStandardMaterial({ color: 0x0d0d0f, roughness: 0.55, metalness: 0.5 }));
+    part.add(box(blackMat, -203, -187, yc - 24, yc + 24, 100, 138)); // corpo (fundo da fenda em z = 138)
+    part.add(box(blackMat, -203, -187, yc + 8, yc + 24, 138, 156)); // acima da fenda
+    part.add(box(blackMat, -203, -187, yc - 24, yc - 8, 138, 156)); // abaixo da fenda
+    part.add(box(blackMat, -203, -201, yc - 8, yc + 8, 138, 156)); // lado de fora
+    part.add(box(blackMat, -189, -187, yc - 8, yc + 8, 138, 156)); // lado de dentro
+    for (const [z, dy] of [[112, 12], [146, -14]]) {
+      const sc = cylX(m.chrome, 3, -187, -185.6, yc + dy, z, 12);
+      sc.userData.noEdges = true;
+      part.add(sc);
+    }
+    part.add(box(blackMat, -199, -191, yc - 18, yc - 8, 90, 100)); // conector
+    const wire = cylZ(this._solWire ?? (this._solWire = new THREE.MeshStandardMaterial({ color: 0xc8261e, roughness: 0.6 })), 1.3, 70, 90, -195, yc - 13, 8);
+    wire.userData.noEdges = true;
+    part.add(wire);
+    // pino do trinco (sobe 6 mm quando o solenoide destrava)
+    const pin = new THREE.Group();
+    pin.add(cylY(m.chrome, 2.6, yc + 24, yc + 34, -195, 112, 12));
+    part.add(pin);
+    ds.plunger = pin;
   }
 
   _buildMechanism() {
@@ -641,12 +673,12 @@ export class Locker {
     d.busy = true;
     const locking = !d.locked;
     if (d.solenoid) {
-      // LED âmbar → êmbolo recua/avança → LED verde (destravado) ou vermelho (travado)
+      // LED âmbar → pino do trinco sobe/desce → LED verde (destravado) ou vermelho (travado)
       d.ledMat.emissive.set(0xffb020);
       await tween(0.18, () => {}, ease.linear);
-      const from = d.plunger.position.x;
-      const to = locking ? 0 : 17;
-      await tween(0.22, (e) => (d.plunger.position.x = THREE.MathUtils.lerp(from, to, e)), ease.outCubic);
+      const from = d.plunger.position.y;
+      const to = locking ? 0 : 6;
+      await tween(0.22, (e) => (d.plunger.position.y = THREE.MathUtils.lerp(from, to, e)), ease.outCubic);
       sfx.lock();
       d.locked = locking;
       d.ledMat.emissive.set(locking ? 0xff2d2d : 0x22e06b);

@@ -119,7 +119,7 @@ const handle = (res) => {
 // ---------- seletor de modelo ----------
 const modelInfo = {
   cylinder: { btn: 'btnModel1', locks: '3 × tambor com came', title: 'Armário 1 · fechaduras de chave' },
-  solenoid: { btn: 'btnModel2', locks: '3 × solenoide 12 V com trinco e LED', title: 'Armário 2 · solenoides eletrônicos' },
+  solenoid: { btn: 'btnModel2', locks: '3 × solenoide com trinco e lingueta (corpo na lateral)', title: 'Armário 2 · solenoides eletrônicos' },
 };
 function refreshModelUi() {
   for (const [k, v] of Object.entries(modelInfo)) $(v.btn).classList.toggle('primary', k === model);
