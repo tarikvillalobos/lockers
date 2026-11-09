@@ -99,8 +99,10 @@ const DOOR_NAMES = { front: 'Porta frontal', back: 'Porta traseira', elec: 'Tamp
 
 // ---------- Locker ----------
 export class Locker {
-  constructor(materials) {
+  // opts.lock: 'cylinder' (fechadura de tambor com chave) | 'solenoid' (solenoide eletrônico + LED)
+  constructor(materials, opts = {}) {
     this.m = materials;
+    this.lockType = opts.lock ?? 'cylinder';
     this.root = new THREE.Group();
     this.root.name = 'Locker';
     this.root.scale.setScalar(0.001); // modelado em mm, cena em metros
@@ -273,7 +275,25 @@ export class Locker {
       d = door.depth;
     // face + retornos (chapa dobrada)
     body.add(box(m.front, -w, 0, 0, h, -2, 0));
-    body.add(box(m.front, -w, -w + 2, 0, h, -d, -2));
+    const sol = this.lockType === 'solenoid';
+    if (!sol) {
+      body.add(box(m.front, -w, -w + 2, 0, h, -d, -2));
+    } else {
+      // retorno do lado da trava com furo para o êmbolo do solenoide
+      const fs = new THREE.Shape();
+      fs.moveTo(-d, 0);
+      fs.lineTo(-2, 0);
+      fs.lineTo(-2, h);
+      fs.lineTo(-d, h);
+      const hole = new THREE.Path();
+      hole.absarc(-11, cfg.lockY, 4.8, 0, Math.PI * 2, false);
+      fs.holes.push(hole);
+      const fg = new THREE.ExtrudeGeometry(fs, { depth: 2, bevelEnabled: false });
+      fg.rotateY(-Math.PI / 2); // (z, y) no plano do retorno, extrusão em −X
+      const fl2 = mesh(fg, m.front);
+      fl2.position.x = -w + 2;
+      body.add(fl2);
+    }
     body.add(box(m.front, -2, 0, 0, h, -d, -2));
     body.add(box(m.front, -w + 2, -2, h - 2, h, -d, -2));
     body.add(box(m.front, -w + 2, -2, 0, 2, -d, -2));
@@ -283,6 +303,10 @@ export class Locker {
     }
     // frente ripada (as portas de baixo se confundem com a fachada); a tampa da eletrônica é lisa
     if (cfg.slats) addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
+    if (sol) {
+      this._buildSolenoidLock(body, which, cfg, ds);
+      return;
+    }
     // Fechadura tambor + came
     const L = door.lock;
     const lock = new THREE.Group();
@@ -320,6 +344,44 @@ export class Locker {
     lock.add(key);
     ds.key = key;
     ds.keyInner = keyInner;
+  }
+
+  // Trava eletrônica de smartlocker: módulo externo com leitor + LED (clicável) e, por dentro, um
+  // solenoide fixo na face interna da porta cujo êmbolo atravessa o furo do retorno e encosta no
+  // montante (travada = êmbolo estendido, LED vermelho; destravada = recuado, LED verde).
+  _buildSolenoidLock(body, which, cfg, ds) {
+    const m = this.m;
+    const L = SPEC.door.lock;
+    const y = cfg.lockY;
+    ds.solenoid = true;
+
+    // módulo externo
+    const lock = new THREE.Group();
+    lock.position.set(L.x, y, 5);
+    lock.userData.action = 'lock';
+    lock.userData.door = which;
+    body.add(lock);
+    lock.add(box(m.dark, -17, 17, -Math.min(30, cfg.h / 2 - 6), Math.min(30, cfg.h / 2 - 6), 0, 4));
+    const ledMat = new THREE.MeshStandardMaterial({ color: 0x101010, emissive: 0xff2d2d, emissiveIntensity: 1.5, roughness: 0.4 });
+    const led = box(ledMat, -11, 11, 2, 6, 4, 5.2);
+    led.userData.noEdges = true;
+    lock.add(led);
+    const reader = cylZ(m.galv, 8, 4, 4.8, 0, -8);
+    lock.add(reader);
+    const readerIn = cylZ(m.dark, 5.5, 4.8, 5.2, 0, -8);
+    readerIn.userData.noEdges = true;
+    lock.add(readerIn);
+    ds.ledMat = ledMat;
+
+    // solenoide por dentro: suporte, corpo, flange da bobina e êmbolo
+    body.add(box(m.galv, -344, -316, y - 13, y + 13, -3.5, -2));
+    body.add(cylX(m.dark, 8.5, -346, -318, y, -11, 20));
+    body.add(cylX(m.galv, 9.5, -319, -315, y, -11, 20));
+    const plunger = new THREE.Group();
+    plunger.position.set(0, y, -11);
+    plunger.add(cylX(m.chrome, 3, -373, -346, 0, 0, 14));
+    body.add(plunger);
+    ds.plunger = plunger;
   }
 
   _buildMechanism() {
@@ -578,6 +640,19 @@ export class Locker {
     }
     d.busy = true;
     const locking = !d.locked;
+    if (d.solenoid) {
+      // LED âmbar → êmbolo recua/avança → LED verde (destravado) ou vermelho (travado)
+      d.ledMat.emissive.set(0xffb020);
+      await tween(0.18, () => {}, ease.linear);
+      const from = d.plunger.position.x;
+      const to = locking ? 0 : 17;
+      await tween(0.22, (e) => (d.plunger.position.x = THREE.MathUtils.lerp(from, to, e)), ease.outCubic);
+      sfx.lock();
+      d.locked = locking;
+      d.ledMat.emissive.set(locking ? 0xff2d2d : 0x22e06b);
+      d.busy = false;
+      return { ok: true };
+    }
     const turn = (from, to) =>
       tween(0.38, (e) => {
         const a = THREE.MathUtils.lerp(from, to, e) * DEG;

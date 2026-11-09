@@ -17,14 +17,28 @@ const { renderer, labelRenderer, scene, camera, controls } = setupScene(viewport
 const canvas = renderer.domElement;
 
 const mats = createMaterials();
-const locker = new Locker(mats);
-scene.add(locker.root);
-locker.buildEdges(new THREE.LineBasicMaterial({ color: 0x1f2226, transparent: true, opacity: 0.55 }));
-locker.setEdges(false);
 
-const parcels = new Parcels(locker);
-const dims = createDimensions();
-locker.root.add(dims.group);
+// Dois modelos do mesmo armário: 1 = fechaduras de tambor com chave, 2 = solenoides eletrônicos (smartlocker)
+let locker, parcels, dims;
+let model = 'cylinder';
+let currentFinish = 'grafite';
+function buildModel(kind) {
+  if (locker) {
+    scene.remove(locker.root);
+    locker.root.traverse((o) => o.geometry?.dispose?.());
+  }
+  model = kind;
+  locker = new Locker(mats, { lock: kind });
+  scene.add(locker.root);
+  locker.buildEdges(new THREE.LineBasicMaterial({ color: 0x1f2226, transparent: true, opacity: 0.55 }));
+  locker.setEdges(false);
+  parcels = new Parcels(locker);
+  dims = createDimensions();
+  locker.root.add(dims.group);
+  window.locker = locker;
+  window.parcels = parcels;
+}
+buildModel('cylinder');
 
 let xray = false;
 
@@ -102,6 +116,29 @@ const handle = (res) => {
   if (res?.msg) toast(res.msg, !res.ok);
 };
 
+// ---------- seletor de modelo ----------
+const modelInfo = {
+  cylinder: { btn: 'btnModel1', locks: '3 × tambor com came', title: 'Armário 1 · fechaduras de chave' },
+  solenoid: { btn: 'btnModel2', locks: '3 × solenoide 12 V com trinco e LED', title: 'Armário 2 · solenoides eletrônicos' },
+};
+function refreshModelUi() {
+  for (const [k, v] of Object.entries(modelInfo)) $(v.btn).classList.toggle('primary', k === model);
+  $('specLocks').textContent = modelInfo[model].locks;
+}
+function switchModel(kind) {
+  if (kind === model) return;
+  buildModel(kind);
+  locker.setEdges($('tgEdges').checked);
+  locker.setSectionCut($('tgCut').checked);
+  dims.setVisible($('tgDims').checked);
+  if ($('tgExplode').checked) locker.setExplode(true);
+  setFinish(currentFinish);
+  refreshModelUi();
+  toast(modelInfo[kind].title);
+}
+$('btnModel1').addEventListener('click', () => switchModel('cylinder'));
+$('btnModel2').addEventListener('click', () => switchModel('solenoid'));
+
 // ---------- ações ----------
 const actions = {
   deposit: async () => handle(await parcels.deposit()),
@@ -161,6 +198,7 @@ function luminance(hex) {
   return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 }
 function setFinish(key) {
+  currentFinish = key;
   applyFinish(mats, key);
   const f = FINISHES[key];
   const light = luminance(f.front) > 0.45;
@@ -185,6 +223,7 @@ for (const [key, f] of Object.entries(FINISHES)) {
   sw.appendChild(b);
 }
 setFinish('grafite');
+refreshModelUi();
 
 // ---------- interação 3D ----------
 const raycaster = new THREE.Raycaster();
@@ -222,8 +261,11 @@ function hint(p) {
       if (locker.doorOpen(w)) return `Fechar ${name}`;
       return locker.doors[w].locked ? `${name[0].toUpperCase()}${name.slice(1)} trancada` : `Abrir ${name}`;
     }
-    case 'lock':
-      return locker.doors[p.target.userData.door].locked ? 'Destrancar (girar a chave)' : 'Trancar';
+    case 'lock': {
+      const sol = locker.lockType === 'solenoid';
+      if (locker.doors[p.target.userData.door].locked) return sol ? 'Destravar (solenoide)' : 'Destrancar (girar a chave)';
+      return sol ? 'Travar (solenoide)' : 'Trancar';
+    }
     case 'parcel':
       return `Retirar encomenda ${p.target.userData.parcel.code}`;
   }
