@@ -38,10 +38,11 @@ export const SPEC = {
   upperRail: { y0: HOPPER_Y + HOPPER_FACE_H + 6, y1: HOPPER_Y + HOPPER_FACE_H + 14 }, // 3 batentes
 
   // Módulo eletrônico no topo: 50 mm de altura na frente (y 950–1000) e 100 mm no fundo (y 900–1000).
-  // O piso é plano até z = zRamp e depois desce em rampa até y = rear.y0 na parede de trás. Acesso por
-  // trás, por uma tampa de 100 mm com fechadura de chave (mesmo vão das portas: 368 mm). A chapa de
-  // baixo (y0) é o teto da boca; a rampa passa a ≥ 15 mm das placas da bandeja (testado de 0° a 90°).
-  elec: { y0: 950, y1: 1000, rear: { y0: 900, zRamp: 0 }, ceil: { z0: -168, z1: 186 } },
+  // O piso (= teto da boca) é uma rampa contínua, da frente (z = ceil.z1, y = y0) até a parede de trás
+  // (z = ceil.z0, y = rear.y0). Acesso por trás, por uma tampa de 100 mm com fechadura de chave (mesmo
+  // vão das portas: 368 mm). As placas da bandeja têm a quina da frente arredondada (raio ~112 mm) e
+  // passam a ≥ 4 mm da rampa de 0° a 90°.
+  elec: { y0: 950, y1: 1000, rear: { y0: 900 }, ceil: { z0: -168, z1: 186 } },
 
   // Porta de depósito (basculante): dobradiça embaixo, abre para fora até ficar na
   // horizontal (vira prateleira para apoiar a encomenda).
@@ -61,7 +62,7 @@ export const SPEC = {
   // Os pinos foram resolvidos numericamente para a placa ir de 0° a 90° quase linear.
   tray: {
     pivot: { z: 60, y: 735 + DY }, // eixo fixo (z, y)
-    plate: [[123, -95], [123, 55], [83, 95], [-140, 95], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
+    plate: [[123, -95], [118, -30], [112, 0], [105, 35], [92, 62], [62, 92], [-140, 90], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
     front: 123, // borda da frente do piso (rel. ao eixo): com a bandeja horizontal fica rente à dobradiça da porta (z = 183)
     back: -210, // borda de trás do piso
     floorY: -93, // face de cima do piso (rel. ao eixo)
@@ -78,7 +79,7 @@ export const SPEC = {
   // segunda biela que sai de um pino da placa. Com a porta aberta fica deitada (por baixo do batente
   // superior); ao fechar desce até a vertical. Comprimento 190 mm: a ponta passa a 16 mm do piso da
   // bandeja (acima de ~195 mm ela atravessaria o piso) e vai de perto da tampa de baixo.
-  flap: { z: 23.49, y: 858 + DY, len: 190, g: 71.372, pin: [-2.63, 70.68] },
+  flap: { z: 23.49, y: 844 + DY, len: 190, g: 71.372, pin: [-2.63, 70.68] },
 
   // Bielas chatas (largura, espessura, sobra nas pontas; x do centro de cada uma)
   arm: { w: 9, t: 3, over: 7, x1: 182.5, x2: 175.5 }, // biela 1 por fora da placa, biela 2 por dentro

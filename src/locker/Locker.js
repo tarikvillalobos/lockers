@@ -406,7 +406,8 @@ export class Locker {
     this.topFlap = flap;
     for (const side of [-1, 1]) {
       // suportes da dobradiça da aba, presos na face de baixo do teto da boca
-      mech.add(box(m.galv, ...(side < 0 ? [-170, -168] : [168, 170]), fl.y - 2, SPEC.upperRail.y1, fl.z - 8, fl.z + 8));
+      const rampTop = SPEC.upperRail.y1 - ((SPEC.upperRail.y1 - SPEC.elec.rear.y0) * (SPEC.elec.ceil.z1 - (fl.z - 8))) / (SPEC.elec.ceil.z1 - SPEC.elec.ceil.z0);
+      mech.add(box(m.galv, ...(side < 0 ? [-170, -168] : [168, 170]), fl.y - 2, rampTop, fl.z - 8, fl.z + 8));
     }
 
     // comprimentos das bielas (fixos): medidos com a porta aberta (90°), placa e aba em 0°
@@ -431,16 +432,19 @@ export class Locker {
     const el = SPEC.elec;
     const ur = SPEC.upperRail;
     const iw = SPEC.W / 2 - SPEC.sheet;
-    const zr = el.rear.zRamp;
-    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, zr, el.ceil.z1)); // teto da boca (frente: 50 mm)
-    mech.add(strip(m.mech, 2 * (iw - 1), 2, [ur.y1, zr], [el.rear.y0, el.ceil.z0])); // rampa até 100 mm no fundo
-    // placa eletrônica (ilustrativa), sobre espaçadores, na parte plana, para aparecer no raio-X
-    mech.add(box(m.dark, -150, 150, el.y0 + 6, el.y0 + 8, 14, 174));
+    mech.add(strip(m.mech, 2 * (iw - 1), 2, [ur.y1, el.ceil.z1], [el.rear.y0, el.ceil.z0])); // rampa: 50 mm (frente) → 100 mm (fundo)
+    // placa eletrônica (ilustrativa), apoiada na rampa, para aparecer no raio-X
+    const rampSlope = (ur.y1 - el.rear.y0) / (el.ceil.z1 - el.ceil.z0);
+    const eb = new THREE.Group();
+    eb.position.set(0, ur.y1 - rampSlope * el.ceil.z1, 0); // ponto da rampa em z = 0
+    eb.rotation.x = -Math.atan(rampSlope);
+    mech.add(eb);
+    eb.add(box(m.dark, -150, 150, 6, 8, 14, 174));
     for (const [cx, cz, w, d] of [[-90, 60, 40, 28], [20, 110, 56, 36], [100, 40, 30, 30]]) {
-      mech.add(box(m.mech, cx - w / 2, cx + w / 2, el.y0 + 8, el.y0 + 18, cz - d / 2, cz + d / 2));
+      eb.add(box(m.mech, cx - w / 2, cx + w / 2, 8, 18, cz - d / 2, cz + d / 2));
     }
     for (const [cx, cz] of [[-140, 24], [140, 24], [-140, 164], [140, 164]]) {
-      mech.add(cylY(m.galv, 3, el.y0 + 2, el.y0 + 6, cx, cz));
+      eb.add(cylY(m.galv, 3, 2, 6, cx, cz));
     }
   }
 
