@@ -335,7 +335,8 @@ export class Locker {
       tri.position.x = side < 0 ? -hp.sideX - 2 : hp.sideX;
       body.add(tri);
       // pino da biela
-      body.add(cylX(m.chrome, 5, side < 0 ? -198 : hp.sideX, side < 0 ? -hp.sideX : 198, hp.pin.v, -hp.pin.u, 16));
+      const pinX = link.x + link.t + 1;
+      body.add(cylX(m.chrome, 5, side < 0 ? -pinX : hp.sideX, side < 0 ? -hp.sideX : pinX, hp.pin.v, -hp.pin.u, 16));
     }
 
     // eixo da dobradiça do basculante + suportes laterais (fixos)
@@ -356,11 +357,12 @@ export class Locker {
     baffle.position.set(0, B.y, B.x);
     mech.add(baffle);
     this.baffle = baffle;
-    const bw = hp.sideX;
+    const bw = bf.halfW;
     baffle.add(box(m.mech, -bw, bw, -bf.length, bf.top, -1, 1));
     baffle.add(cylX(m.chrome, 5, -203, 203, 0, 0, 16)); // eixo
     for (const side of [-1, 1]) {
-      baffle.add(cylX(m.chrome, 4.5, side < 0 ? -197 : bw, side < 0 ? -bw : 197, -this.baffleR, 0, 16));
+      const qx = link.x + link.t + 1;
+      baffle.add(cylX(m.chrome, 4.5, side < 0 ? -qx : bw, side < 0 ? -bw : qx, -this.baffleR, 0, 16));
       mech.add(box(m.galv, side < 0 ? -203 : 194, side < 0 ? -194 : 203, B.y - 16, B.y + 16, B.x - 14, B.x + 14));
     }
 

@@ -47,27 +47,34 @@ export const SPEC = {
       [60, 0],
       [120, -104],
     ],
-    // contorno da lateral triangular em (u = para trás, v = para cima)
+    // contorno da lateral em (u = para trás, v = para cima): triângulo + "bochecha"
+    // que desce cobrindo a lateral da chapa de fundo (sem fresta para a mão passar)
     profile: [
       [0, 0],
       [0, HOPPER_FACE_H],
       [140, 52],
       // curva arredondada até a base
       ['q', 160, 18, 128, 0],
+      [124, -108],
+      [116, -108],
+      [60, -1],
     ],
   },
 
   // Defletor anti-furto pendurado no fundo, acionado pela biela.
   // Eixo 100 mm mais alto que no CAD e biela mais perto do eixo (giro de ~49°):
   // aberto, o pé do defletor encosta a ~15 mm da chapa de fundo do basculante.
+  // Anti-furto com a gaveta aberta: largura quase até as paredes (fresta lateral
+  // de 10 mm em vez de 21 mm); as bielas passam por fora, encostadas na parede.
   baffle: {
+    halfW: 193,
     pivot: { u: 362, v: 219 }, // relativo à quina do basculante
     length: 280,
     top: 10,
     linkPoint: { dv: -139, du: -17 }, // ponto da biela em relação ao eixo (fechado)
   },
 
-  link: { x: 189, t: 3, w: 16 },
+  link: { x: 196, t: 3, w: 16 }, // por fora do defletor (x 196–199)
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira
