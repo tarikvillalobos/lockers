@@ -352,14 +352,12 @@ export class Locker {
     // reforço interno da porta
     body.add(box(m.front, -fw + 10, fw - 10, 20, 34, -14, -2));
 
-    // eixo da dobradiça + pinos onde a biela prende na porta + suportes fixos estreitos
+    // eixo da dobradiça + pinos onde a biela prende na porta
     pivot.add(cylX(m.chrome, 4.5, -186, 186, 0, 0, 16));
-    const p0 = this.hopperPivotPos;
     for (const side of [-1, 1]) {
       const sx = (a, b) => (side < 0 ? [-b, -a] : [a, b]);
       pivot.add(cylX(m.chrome, 2, ...sx(183, 187), 0, 0, 10)); // pino da dobradiça até a face da coluna
       pivot.add(cylX(m.chrome, 3.5, ...sx(179, arm.x1 + arm.t / 2 + 1), hp.pin.dy, hp.pin.z, 12));
-      mech.add(box(m.galv, ...sx(199, 203), p0.y - 18, p0.y + 18, p0.x - 16, p0.x + 2));
     }
 
     // ---- Bandeja giratória: 2 placas + piso, gira num eixo fixo no meio da boca ----
