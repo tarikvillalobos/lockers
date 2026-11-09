@@ -409,6 +409,10 @@ export class Locker {
       flap.add(cylX(m.chrome, 3, ...(side < 0 ? [-(arm.x2 + arm.t / 2 + 1), -168] : [168, arm.x2 + arm.t / 2 + 1]), -1, fl.g, 12));
     }
     this.topFlap = flap;
+    for (const side of [-1, 1]) {
+      // suportes da dobradiça da aba, presos na face de baixo da prateleira de cartas
+      mech.add(box(m.galv, ...(side < 0 ? [-170, -168] : [168, 170]), fl.y - 2, SPEC.upperRail.y1, fl.z - 8, fl.z + 8));
+    }
 
     // comprimentos das bielas (fixos): medidos com a porta aberta (90°), placa e aba em 0°
     const pivotV = new THREE.Vector2(P.z, P.y);
@@ -486,7 +490,7 @@ export class Locker {
     // biela 2: pino da placa → pino da aba (a aba desce até a vertical)
     const Hf = new THREE.Vector2(fl.z, fl.y);
     const R = P.clone().add(rot(new THREE.Vector2(fl.pin[0], fl.pin[1]), phi));
-    const a2 = solveAngle(R, Hf, new THREE.Vector2(fl.g, 0), this.arm2Len, -phi);
+    const a2 = solveAngle(R, Hf, new THREE.Vector2(fl.g, 0), this.arm2Len, -0.53 * phi);
     const psi = -a2;
     this.topFlap.rotation.x = psi;
     const G = Hf.clone().add(rot(new THREE.Vector2(fl.g, 0), a2));

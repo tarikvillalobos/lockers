@@ -70,10 +70,11 @@ export const SPEC = {
     rearStop: 16, // batente na porta traseira que cobre a ponta do piso
   },
 
-  // Aba superior (viseira): articulada na face de baixo da prateleira de cartas, acionada por uma
-  // segunda biela que sai de um pino da placa. Com a porta aberta fica deitada rente à prateleira;
-  // ao fechar desce até ficar na vertical.
-  flap: { z: 23.49, y: 868, len: 130, g: 71.372, pin: [-2.63, 70.68] },
+  // Aba superior (viseira): articulada num suporte logo abaixo da prateleira de cartas e acionada por
+  // uma segunda biela que sai de um pino da placa. Com a porta aberta fica deitada (acima das
+  // encomendas); ao fechar a ponta desce e acompanha o piso da bandeja: a fresta entre os dois fica
+  // ≤ ~50 mm já a 9° de giro e ≤ 25 mm de 18° a 63°; no fim, a porta quase fechada cobre a boca.
+  flap: { z: -48.098, y: 838.149, len: 231.324, g: 121.534, pin: [-81.4, 89.779] },
 
   // Bielas chatas (largura, espessura, sobra nas pontas; x do centro de cada uma)
   arm: { w: 9, t: 3, over: 7, x1: 182.5, x2: 175.5 }, // biela 1 por fora da placa, biela 2 por dentro

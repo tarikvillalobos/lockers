@@ -269,7 +269,7 @@ export class Parcels {
     const qm = new THREE.Quaternion().setFromEuler(new THREE.Euler(ta * 1.2, yaw * 0.5, 0));
     const drop = Math.max(10, w.y - target.y);
     const T = THREE.MathUtils.clamp(Math.sqrt((2 * drop) / 9810) * 1.9, 0.3, 0.75);
-    return tween(0.45, (e) => {
+    return tween(0.35, (e) => {
       p.position.lerpVectors(p0, w, e);
       p.quaternion.slerpQuaternions(q0, qm, e);
     }, ease.inQuad)
@@ -378,6 +378,6 @@ export class Parcels {
 
   update() {
     const h = this.locker.hopper;
-    if (this.inHopper && !this.placing && this.locker.trayTilt > 6 && h.target <= h.angle) this._release();
+    if (this.inHopper && !this.placing && this.locker.trayTilt > 3 && h.target <= h.angle) this._release();
   }
 }
