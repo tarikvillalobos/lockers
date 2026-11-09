@@ -17,8 +17,10 @@ npm run build    # gera dist/ estático
 
 | Peça | Comportamento |
 | --- | --- |
+| **Fachada (base: Milkcan Hamilton)** | De cima para baixo: fenda de cartas, painel "Cartas", rebaixo de pegada com 3 batentes, porta de encomendas ripada e frente ripada. Atrás, porta de acesso de altura inteira. |
+| **Cartas** | Entram pela fenda (a aba interna balança), escorregam pela calha do nicho e caem na prateleira de cima. Só saem pela porta traseira. |
 | **Porta de depósito** (basculante) | Dobradiça embaixo; abre até 90° e vira prateleira. Clique ou arraste. |
-| **Bandeja anti-furto** | Bandeja interna que ocupa a profundidade toda, logo abaixo da boca. Com a porta aberta (já a partir de 10°) ela fica horizontal e separa a parte de cima do compartimento; ao fechar a porta, um amortecedor telescópico inclina a bandeja 35° para trás e a encomenda escorrega e cai. Inspirado no mecanismo Milkcan. |
+| **Bandeja anti-furto** | Bandeja interna que ocupa a profundidade toda, logo abaixo da boca. Com a porta aberta (já a partir de 10°) ela fica horizontal e separa a parte de cima do compartimento; ao fechar a porta, um amortecedor telescópico inclina a bandeja 30° para trás e uma aba superior desce junto e a encomenda escorrega e cai. Inspirado no mecanismo Milkcan. |
 | **Fechaduras tambor** (frente e trás) | Clique: a chave entra, gira 90° e o came libera/trava o montante. Cada porta tem a sua. |
 | **Portas frontal e traseira** | Mesmo vão (368 × 490 mm), abrem 105°; a traseira é a frontal espelhada. Trancadas, só "tremem". |
 | **Encomendas** | "Depositar" gera caixas com tamanhos variados que caem e se empilham com apoio real. Com uma das portas aberta, clique numa caixa para retirá-la (as de cima reacomodam). |
@@ -26,7 +28,7 @@ npm run build    # gera dist/ estático
 Visualização: raio-X, sem lateral (corte como nas vistas do CAD), vista explodida, cotas,
 linhas CAD, câmeras 3D/Frente/Lateral/Trás/Topo e 6 acabamentos (inclusive as cores do CAD).
 
-Atalhos: `P` depositar · `B` basculante · `L`/`D` fechadura/porta frontal · `U`/`T` fechadura/porta traseira · `R` retirar tudo ·
+Atalhos: `P` depositar encomenda · `A` depositar carta · `B` basculante · `L`/`D` fechadura/porta frontal · `U`/`T` fechadura/porta traseira · `R` retirar tudo ·
 `X` raio-X · `C` corte · `E` explodida · `M` cotas · `K` linhas · `G` girar · `S` som · `1–5` câmeras.
 
 ## Estrutura

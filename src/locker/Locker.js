@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { SPEC, DEG } from './spec.js';
-import { createHeaderDecal } from './textures.js';
+import { createTextDecal } from './textures.js';
 import { tween, ease } from '../core/tween.js';
 import { sfx } from '../core/sound.js';
 
@@ -47,6 +47,27 @@ function strip(mat, width, thick, from, to) {
   return m;
 }
 
+// Ripas horizontais (estilo "weatherboard"): cada ripa levemente inclinada, a borda de
+// baixo saliente, para a luz marcar as linhas como na frente do Hamilton.
+const seamMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22, depthWrite: false });
+function addSlats(group, mat, x0, x1, y0, y1, zFace, pitch) {
+  const n = Math.max(1, Math.round((y1 - y0) / pitch));
+  const h = (y1 - y0) / n;
+  for (let i = 0; i < n; i++) {
+    const m = mesh(new THREE.BoxGeometry(x1 - x0, h - 2.4, 3), mat);
+    m.position.set((x0 + x1) / 2, y0 + h * i + h / 2, zFace + 2);
+    m.rotation.x = -3 * DEG;
+    group.add(m);
+    if (i > 0) {
+      // sombra da junta entre ripas
+      const seam = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, 3.2), seamMat);
+      seam.position.set((x0 + x1) / 2, y0 + h * i, zFace + 0.6);
+      seam.userData.noEdges = true;
+      group.add(seam);
+    }
+  }
+}
+
 function approach(cur, target, dt, rate = 7, minSpeed = 30) {
   const diff = target - cur;
   if (Math.abs(diff) < 0.02) return target;
@@ -77,6 +98,24 @@ export class Locker {
     this._buildMechanism();
     this._applyExplode(0);
     this._updateMechanism();
+  }
+
+  // Texto gravado num plano (cor ajustada ao acabamento em main.js)
+  _decal(group, text, w, h, x, y, z, opts = {}) {
+    const mat = new THREE.MeshStandardMaterial({
+      map: createTextDecal(text, opts),
+      transparent: true,
+      opacity: 0.6,
+      roughness: 0.5,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+    });
+    const d = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    d.position.set(x, y, z);
+    d.userData.noEdges = true;
+    group.add(d);
+    this.decals.push(mat);
+    return d;
   }
 
   _part(name, offset) {
@@ -131,71 +170,77 @@ export class Locker {
       else this.sidePanelL = panel;
     }
 
-    // Fundo: painel só acima da porta traseira + travessa e retornos do vão
+    // Fundo: só a faixa acima da porta traseira de altura inteira + retornos (batente da came)
     const back = this._part('back', [0, 0, -260]);
-    const lr = SPEC.lowerRail;
+    const bd = SPEC.backDoor;
     const fx = ix - stile.w; // borda interna dos montantes (187)
-    const backPanel = box(m.shell, -ix, ix, lr.y1, yt, -hz + sheet, -hz + sheet * 2);
-    backPanel.userData.shell = true;
-    back.add(backPanel);
-    back.add(box(m.body, -fx, fx, lr.y0, lr.y1, -hz, -hz + sheet));
-    back.add(box(m.body, -fx, fx, lr.y0, lr.y0 + sheet, -hz + sheet, -hz + 24));
-    back.add(box(m.rubber, -fx + 2, fx - 2, lr.y0 - 3, lr.y0, -hz + 6, -hz + 14));
+    const topY = bd.y0 + bd.h + 3;
+    const backStrip = box(m.shell, -ix, ix, topY, yt, -hz + sheet, -hz + sheet * 2);
+    backStrip.userData.shell = true;
+    back.add(backStrip);
+    back.add(box(m.body, -fx, fx, topY, yt, -hz, -hz + sheet));
     for (const side of [-1, 1]) {
       const x0 = side < 0 ? -fx - sheet : fx;
-      back.add(box(m.body, x0, x0 + sheet, yb, lr.y0, -hz + sheet, -hz + sheet + stile.ret));
+      back.add(box(m.body, x0, x0 + sheet, yb, topY, -hz + sheet, -hz + sheet + stile.ret));
     }
   }
 
   _buildFrontFrame() {
-    const { W, D, sheet, stile, lowerRail: lr, upperRail: ur, header } = SPEC;
+    const { W, D, sheet, stile, lowerRail: lr, upperRail: ur, niche, lettersPanel: lp, door } = SPEC;
     const hz = D / 2;
     const fx = W / 2 - sheet - stile.w; // borda interna dos montantes (187)
     const m = this.m;
     const g = this._part('frame', [0, 0, 230]);
 
-    // Testeira superior (cor da frente) com gravação
-    g.add(box(m.front, -fx, fx, header.y0, header.y1, hz - sheet, hz));
-    const decalMat = new THREE.MeshStandardMaterial({
-      map: createHeaderDecal(),
-      transparent: true,
-      opacity: 0.55,
-      roughness: 0.5,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-    });
-    const decal = new THREE.Mesh(new THREE.PlaneGeometry(250, 47), decalMat);
-    decal.position.set(0, (header.y0 + header.y1) / 2, hz + 0.3);
-    decal.userData.noEdges = true;
-    g.add(decal);
-    this.decals.push(decalMat);
+    // Painel "Cartas" (abaixo da fenda de cartas)
+    g.add(box(m.front, -fx, fx, lp.y0, lp.y1, hz - sheet, hz));
+    g.add(box(m.front, -fx, fx, lp.y1 - sheet, lp.y1, hz - 40, hz - sheet)); // dobra = lábio da fenda
+    this._decal(g, 'Cartas', 110, 28, fx - 70, (lp.y0 + lp.y1) / 2 + 4, hz + 0.3, { w: 512, h: 128, size: 76, align: 'right', weight: 400, spacing: 2 });
 
-    // Travessa superior (perfil C)
+    // Rebaixo de pegada (nicho aberto): fundo, teto inclinado (calha das cartas) e laterais
+    g.add(box(m.body, -fx, fx, ur.y1, niche.ceilBackY + 2, niche.backZ, niche.backZ + sheet)); // fundo
+    g.add(strip(m.body, fx * 2, 2, [lp.y0 - 1, hz - sheet], [niche.ceilBackY, niche.backZ])); // teto/calha
+    for (const side of [-1, 1]) {
+      const x0 = side < 0 ? -fx : fx - sheet;
+      g.add(box(m.body, x0, x0 + sheet, ur.y1, lp.y0, niche.backZ, hz - sheet));
+    }
+
+    // Travessa superior (piso do nicho) com 3 batentes pretos
     g.add(box(m.body, -fx, fx, ur.y0, ur.y1, hz - sheet, hz));
+    g.add(box(m.body, -fx, fx, ur.y1 - sheet, ur.y1, niche.backZ, hz - sheet));
     g.add(box(m.body, -fx, fx, ur.y0, ur.y0 + sheet, hz - 30, hz - sheet));
+    const bumperGeo = new THREE.SphereGeometry(6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+    bumperGeo.rotateX(Math.PI / 2);
+    for (const x of [-150, 0, 150]) {
+      const b = mesh(bumperGeo, m.rubber);
+      b.position.set(x, (ur.y0 + ur.y1) / 2, hz);
+      g.add(b);
+    }
 
-    // Travessa inferior (perfil C)
-    g.add(box(m.body, -fx, fx, lr.y0, lr.y1, hz - sheet, hz));
+    // Travessa inferior (ripada, continua a frente)
+    g.add(box(m.body, -fx, fx, lr.y0, lr.y1, hz - sheet - 2, hz - sheet));
+    addSlats(g, m.front, -fx, fx, lr.y0, lr.y1, hz - sheet, door.slatH);
     g.add(box(m.body, -fx, fx, lr.y1 - sheet, lr.y1, hz - 10, hz - sheet));
     g.add(box(m.body, -fx, fx, lr.y0, lr.y0 + sheet, hz - 24, hz - sheet));
 
-    // Vedação de borracha no batente da porta
+    // Vedação de borracha no batente da porta inferior
     g.add(box(m.rubber, -fx + 2, fx - 2, lr.y0 - 3, lr.y0, hz - 14, hz - 6));
   }
 
   // Porta com fechadura. which = 'front' | 'back'; a traseira é a frontal girada 180° em Y,
   // então a dobradiça fica à direita e a fechadura à esquerda de quem olha por trás.
   _buildDoor(which, rotY) {
-    const { D, door } = SPEC;
+    const { D, door, backDoor } = SPEC;
     const m = this.m;
     const hz = D / 2;
     const front = which === 'front';
+    const y0 = front ? door.y0 : backDoor.y0;
     const part = this._part(front ? 'door' : 'doorBack', [0, 0, front ? 440 : -440]);
     part.rotation.y = rotY;
     const ds = { which, angle: 0, target: 0, shake: 0, locked: true, busy: false };
     this.doors[which] = ds;
     const pivot = new THREE.Group();
-    pivot.position.set(door.pivotX, door.y0, hz);
+    pivot.position.set(door.pivotX, y0, hz);
     part.add(pivot);
     ds.pivot = pivot;
 
@@ -204,7 +249,7 @@ export class Locker {
     body.userData.door = which;
     pivot.add(body);
     const w = door.w,
-      h = door.h,
+      h = front ? door.h : backDoor.h,
       d = door.depth;
     // face + retornos (chapa dobrada)
     body.add(box(m.front, -w, 0, 0, h, -2, 0));
@@ -216,6 +261,13 @@ export class Locker {
     for (const cx of [-205, -163]) {
       body.add(box(m.front, cx - 11, cx + 11, 14, h - 14, -14, -2));
     }
+    // frente ripada (porta inferior da frente se confunde com a fachada)
+    if (front) addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
+    // porta traseira: batente interno que cobre a ponta da bandeja anti-furto
+    if (!front) {
+      const ty = SPEC.tray.topY - y0;
+      body.add(box(m.mech, -w + 4, -4, ty + 1, ty + 3, -d - SPEC.tray.rearStop, -d));
+    }
     // dobradiças internas
     for (const y of [60, h - 60]) {
       body.add(box(m.galv, -26, -2, y - 20, y + 20, -8, -2));
@@ -225,7 +277,7 @@ export class Locker {
     // Fechadura tambor + came
     const L = door.lock;
     const lock = new THREE.Group();
-    lock.position.set(L.x, L.y, 0);
+    lock.position.set(L.x, front ? L.y : backDoor.lockY, front ? 5 : 0);
     lock.userData.action = 'lock';
     lock.userData.door = which;
     body.add(lock);
@@ -237,7 +289,7 @@ export class Locker {
     lock.add(cylZ(m.galv, 9, -24, -2, 0, 0, 20));
 
     const cam = new THREE.Group();
-    cam.position.z = -26;
+    cam.position.z = front ? -31 : -26; // came atrás do retorno do montante
     cam.add(box(m.galv, -52, 6, -8, 8, -2, 2));
     lock.add(cam);
     ds.cam = cam;
@@ -283,18 +335,23 @@ export class Locker {
 
     const fw = hp.faceW / 2;
     body.add(box(m.front, -fw, fw, 0, hp.faceH, -2, 0)); // face
-    body.add(strip(m.front, hp.faceW, 2, [hp.faceH, -1], [hp.faceH - 13, 12])); // puxador
+    body.add(strip(m.front, hp.faceW, 2, [hp.faceH, -1], [hp.faceH - 13, 12])); // puxador "PUXE"
+    // faixa lisa com "Encomendas" no alto + ripas abaixo (como a fachada)
+    const band = 62;
+    addSlats(body, m.front, -fw, fw, 0, hp.faceH - band, 0, SPEC.door.slatH);
+    this._decal(body, 'Encomendas', 150, 30, fw - 88, hp.faceH - band / 2 - 4, 0.4, { w: 640, h: 128, size: 76, align: 'right', weight: 400, spacing: 2 });
     // reforço interno da porta
     body.add(box(m.front, -fw + 10, fw - 10, 20, 34, -14, -2));
 
     // eixo da dobradiça + manivelas (giram com a porta) + suportes fixos estreitos
     const ck = hp.crank;
-    pivot.add(cylX(m.chrome, 4.5, -200, 200, 0, 0, 16));
+    pivot.add(cylX(m.chrome, 4.5, -186, 186, 0, 0, 16));
     for (const side of [-1, 1]) {
       const crank = strip(m.galv, 3, 12, [0, 0], [ck.y, ck.z]);
       crank.position.x = side * (ck.x + 1.5);
       pivot.add(crank);
       pivot.add(cylX(m.chrome, 4, side < 0 ? -ck.x - 4 : ck.x - 1, side < 0 ? -ck.x + 1 : ck.x + 4, ck.y, ck.z, 12));
+      pivot.add(cylX(m.chrome, 2, side < 0 ? -199 : 186, side < 0 ? -186 : 199, 0, 0, 10)); // eixo até a manivela
       const p0 = this.hopperPivotPos;
       mech.add(box(m.galv, side < 0 ? -203 : 199, side < 0 ? -199 : 203, p0.y - 18, p0.y + 18, p0.x - 16, p0.x + 2));
     }
@@ -343,6 +400,37 @@ export class Locker {
       this.struts.push({ tube, rod });
     }
     this.trayTilt = tr.tilt;
+
+    // ---- Aba interna superior (Hamilton): presa atrás da travessa de cima; com a porta
+    // aberta fica rente ao teto, ao fechar desce junto com a bandeja e guia a encomenda ----
+    const ur = SPEC.upperRail;
+    const tf = SPEC.topFlap;
+    const flap = new THREE.Group();
+    flap.position.set(0, ur.y0 - 4, hz - 22);
+    mech.add(flap);
+    flap.add(box(m.mech, -185, 185, -2, 0, -tf.len, 0));
+    flap.add(cylX(m.chrome, 3.5, -186, 186, -1, 0, 12));
+    this.topFlap = flap;
+
+    // ---- Prateleira de cartas (= teto da câmara de encomendas) ----
+    const ls = SPEC.lettersShelf;
+    const iw = SPEC.W / 2 - SPEC.sheet;
+    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, ls.z0, ls.z1));
+
+    // ---- Aba da fenda de cartas (pendurada atrás da fenda) ----
+    const sl = SPEC.slot;
+    const lf = new THREE.Group();
+    lf.position.set(0, sl.y1 - 2, hz - 6);
+    mech.add(lf);
+    lf.add(box(m.mech, -180, 180, -sl.y1 + sl.y0 - 6, 0, -1, 1));
+    this.letterFlap = lf;
+  }
+
+  // Aba da fenda de cartas balança quando entra uma carta
+  bumpLetterFlap() {
+    return tween(0.7, (e, k) => {
+      this.letterFlap.rotation.x = -Math.sin(Math.PI * Math.min(1, k * 1.6)) * 55 * DEG * (1 - k * 0.3);
+    }, ease.linear).then(() => (this.letterFlap.rotation.x = 0));
   }
 
   // Ângulo da bandeja em função da porta: horizontal a partir de `sealBy` graus
@@ -358,6 +446,8 @@ export class Locker {
     this.trayTilt = this._trayTiltFor(this.hopper.angle);
     const ta = -this.trayTilt * DEG;
     this.tray.rotation.x = ta;
+    // aba superior acompanha a bandeja (horizontal com a porta aberta)
+    this.topFlap.rotation.x = -(SPEC.topFlap.down * this.trayTilt) / SPEC.tray.tilt * DEG;
 
     // pontos do amortecedor (z, y) no referencial do locker
     const { crank: ck } = SPEC.hopper;

@@ -105,6 +105,7 @@ const handle = (res) => {
 // ---------- ações ----------
 const actions = {
   deposit: async () => handle(await parcels.deposit()),
+  letter: async () => handle(await parcels.depositLetter()),
   hopper: () => handle(locker.toggleHopper()),
   lock: async (which = 'front') => handle(await locker.toggleLock(which)),
   door: (which = 'front') => handle(locker.toggleDoor(which)),
@@ -112,6 +113,7 @@ const actions = {
 };
 
 $('btnDeposit').addEventListener('click', actions.deposit);
+$('btnLetter').addEventListener('click', actions.letter);
 $('btnHopper').addEventListener('click', actions.hopper);
 $('btnLock').addEventListener('click', () => actions.lock('front'));
 $('btnDoor').addEventListener('click', () => actions.door('front'));
@@ -224,6 +226,8 @@ function hint(p) {
       return locker.doors[p.target.userData.door].locked ? 'Destrancar (girar a chave)' : 'Trancar';
     case 'parcel':
       return `Retirar encomenda ${p.target.userData.parcel.code}`;
+    case 'letter':
+      return 'Pegar carta';
   }
   return '';
 }
@@ -281,6 +285,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (p.action === 'door') actions.door(p.target.userData.door);
   else if (p.action === 'lock') actions.lock(p.target.userData.door);
   else if (p.action === 'parcel') parcels.retrieve(p.target.userData.item).then(handle);
+  else if (p.action === 'letter') parcels.retrieveLetter(p.target.userData.letter).then(handle);
 });
 
 // ---------- teclado ----------
@@ -290,6 +295,7 @@ window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   const map = {
     p: actions.deposit,
+    a: actions.letter,
     b: actions.hopper,
     l: () => actions.lock('front'),
     d: () => actions.door('front'),
@@ -328,6 +334,7 @@ const ui = {
   door: $('stDoor'),
   doorBack: $('stDoorBack'),
   count: $('stCount'),
+  letters: $('stLetters'),
   capBar: $('capBar'),
   capLabel: $('capLabel'),
   angleVal: $('angleVal'),
@@ -380,6 +387,8 @@ function updateStatus() {
 
   const n = parcels.count + (parcels.inHopper ? 1 : 0);
   set(ui.count, parcels.inHopper ? `${parcels.count} + 1 no basculante` : `${n} unid.`, n ? 'on' : '');
+  const nl = parcels.letterCount;
+  set(ui.letters, `${nl} unid.`, nl ? 'on' : '');
   const occ = Math.round(parcels.occupancy * 100);
   if (ui.capBar._v !== occ) {
     ui.capBar.style.width = occ + '%';
