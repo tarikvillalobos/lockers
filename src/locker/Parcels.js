@@ -105,7 +105,7 @@ export class Parcels {
     for (const p of order) {
       const dims = { name: p.name, w: jitter(p.w), a: jitter(p.a), b: jitter(p.b) };
       dims.w = Math.min(dims.w, 345);
-      dims.a = Math.min(dims.a, 268);
+      dims.a = Math.min(dims.a, SPEC.hopper.faceH - 32); // cabe na bandeja
       if (this.findSpot(dims.w + 6, dims.a + 6, dims.b)) return dims;
     }
     return null;

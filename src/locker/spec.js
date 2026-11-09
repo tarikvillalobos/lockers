@@ -2,6 +2,11 @@
 // Eixos: X = largura (esq → dir, visto de frente), Y = altura, Z = profundidade (+Z = frente).
 // Fonte: desenhos SolidWorks (410 × 380 × 1020 mm) + vistas laterais do mecanismo.
 
+// Basculante: altura da face (antes 300 mm). A travessa superior acompanha
+// para fechar a frente logo acima dele.
+const HOPPER_Y = 572; // quina inferior-frontal da face
+const HOPPER_FACE_H = 240;
+
 export const SPEC = {
   W: 410,
   D: 380,
@@ -22,13 +27,13 @@ export const SPEC = {
   },
 
   lowerRail: { y0: 517, y1: 566 },
-  upperRail: { y0: 878, y1: 926 },
+  upperRail: { y0: HOPPER_Y + HOPPER_FACE_H + 6, y1: 926 },
   header: { y0: 926, y1: 1000 },
 
   // Basculante (gaveta de depósito). Quina inferior-frontal da face em y=572, z=190.
   hopper: {
-    cornerY: 572,
-    faceH: 300,
+    cornerY: HOPPER_Y,
+    faceH: HOPPER_FACE_H,
     faceW: 372,
     sideX: 182, // face interna das laterais triangulares
     pivot: { y: 4, u: 4 }, // eixo da dobradiça relativo à quina (u = para trás)
@@ -44,7 +49,7 @@ export const SPEC = {
     // contorno da lateral triangular em (u = para trás, v = para cima)
     profile: [
       [0, 0],
-      [0, 300],
+      [0, HOPPER_FACE_H],
       [140, 52],
       // curva arredondada até a base
       ['q', 160, 18, 128, 0],
