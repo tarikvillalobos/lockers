@@ -37,11 +37,11 @@ export const SPEC = {
   lowerRail: { y0: 517, y1: HOPPER_Y - 6 },
   upperRail: { y0: HOPPER_Y + HOPPER_FACE_H + 6, y1: HOPPER_Y + HOPPER_FACE_H + 14 }, // 3 batentes
 
-  // Módulo eletrônico no topo, em degrau: 50 mm de altura na frente (y 950–1000) e 100 mm no fundo
-  // (y 900–1000, a partir de z = zStep). Acesso por trás, por uma tampa de 100 mm com fechadura de
-  // chave (mesmo vão das portas: 368 mm). A chapa de baixo (y0) é o teto da boca; o degrau passa
-  // folgado pelas placas da bandeja (testado de 0° a 90°).
-  elec: { y0: 950, y1: 1000, rear: { y0: 900, zStep: -100 }, ceil: { z0: -168, z1: 186 } },
+  // Módulo eletrônico no topo: 50 mm de altura na frente (y 950–1000) e 100 mm no fundo (y 900–1000).
+  // O piso é plano até z = zRamp e depois desce em rampa até y = rear.y0 na parede de trás. Acesso por
+  // trás, por uma tampa de 100 mm com fechadura de chave (mesmo vão das portas: 368 mm). A chapa de
+  // baixo (y0) é o teto da boca; a rampa passa a ≥ 15 mm das placas da bandeja (testado de 0° a 90°).
+  elec: { y0: 950, y1: 1000, rear: { y0: 900, zRamp: 0 }, ceil: { z0: -168, z1: 186 } },
 
   // Porta de depósito (basculante): dobradiça embaixo, abre para fora até ficar na
   // horizontal (vira prateleira para apoiar a encomenda).

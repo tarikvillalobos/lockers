@@ -431,16 +431,15 @@ export class Locker {
     const el = SPEC.elec;
     const ur = SPEC.upperRail;
     const iw = SPEC.W / 2 - SPEC.sheet;
-    const zs = el.rear.zStep;
-    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, zs, el.ceil.z1)); // teto da boca (frente: 50 mm)
-    mech.add(box(m.mech, -iw + 1, iw - 1, el.rear.y0, el.rear.y0 + 2, el.ceil.z0, zs)); // piso do fundo (100 mm)
-    mech.add(box(m.mech, -iw + 1, iw - 1, el.rear.y0, ur.y1 + 2, zs - 2, zs)); // degrau
-    // placa eletrônica (ilustrativa), sobre espaçadores, para aparecer no raio-X
-    mech.add(box(m.dark, -150, 150, el.y0 + 6, el.y0 + 8, -120, 120));
-    for (const [cx, cz, w, d] of [[-90, -30, 40, 28], [20, 30, 56, 36], [100, -50, 30, 30]]) {
+    const zr = el.rear.zRamp;
+    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, zr, el.ceil.z1)); // teto da boca (frente: 50 mm)
+    mech.add(strip(m.mech, 2 * (iw - 1), 2, [ur.y1, zr], [el.rear.y0, el.ceil.z0])); // rampa até 100 mm no fundo
+    // placa eletrônica (ilustrativa), sobre espaçadores, na parte plana, para aparecer no raio-X
+    mech.add(box(m.dark, -150, 150, el.y0 + 6, el.y0 + 8, 14, 174));
+    for (const [cx, cz, w, d] of [[-90, 60, 40, 28], [20, 110, 56, 36], [100, 40, 30, 30]]) {
       mech.add(box(m.mech, cx - w / 2, cx + w / 2, el.y0 + 8, el.y0 + 18, cz - d / 2, cz + d / 2));
     }
-    for (const [cx, cz] of [[-140, -110], [140, -110], [-140, 110], [140, 110]]) {
+    for (const [cx, cz] of [[-140, 24], [140, 24], [-140, 164], [140, 164]]) {
       mech.add(cylY(m.galv, 3, el.y0 + 2, el.y0 + 6, cx, cz));
     }
   }
