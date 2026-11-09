@@ -314,7 +314,7 @@ export class Locker {
   }
 
   _buildMechanism() {
-    const { D, hopper: hp, tray: tr, strut: st } = SPEC;
+    const { D, hopper: hp, tray: tr, link: lk, plate: pl } = SPEC;
     const m = this.m;
     const hz = D / 2;
     const mech = this._part('mech', [0, 0, 0]);
@@ -350,7 +350,8 @@ export class Locker {
       const crank = strip(m.galv, 3, 12, [0, 0], [ck.y, ck.z]);
       crank.position.x = side * (ck.x + 1.5);
       pivot.add(crank);
-      pivot.add(cylX(m.chrome, 4, side < 0 ? -ck.x - 4 : ck.x - 1, side < 0 ? -ck.x + 1 : ck.x + 4, ck.y, ck.z, 12));
+      const pinIn = lk.x - lk.t / 2 - 1.5; // o pino atravessa a biela
+      pivot.add(cylX(m.chrome, 4, side < 0 ? -ck.x - 4 : pinIn, side < 0 ? -pinIn : ck.x + 4, ck.y, ck.z, 12));
       pivot.add(cylX(m.chrome, 2, side < 0 ? -199 : 186, side < 0 ? -186 : 199, 0, 0, 10)); // eixo até a manivela
       const p0 = this.hopperPivotPos;
       mech.add(box(m.galv, side < 0 ? -203 : 199, side < 0 ? -199 : 203, p0.y - 18, p0.y + 18, p0.x - 16, p0.x + 2));
@@ -366,9 +367,21 @@ export class Locker {
     trayPivot.add(box(m.mech, -tr.halfW, tr.halfW, -14, -2, -tr.length, -tr.length + 2));
     // dobradiça da bandeja (frente)
     trayPivot.add(cylX(m.chrome, 4, -203, 203, -4, -2, 16));
+    // placas laterais trapezoidais (fixas na parede) com disco + parafuso no eixo da bandeja
+    const plShape = new THREE.Shape();
+    pl.pts.forEach(([z, y], i) => (i ? plShape.lineTo(-z, y) : plShape.moveTo(-z, y)));
+    const plGeo = new THREE.ExtrudeGeometry(plShape, { depth: pl.t, bevelEnabled: false });
+    plGeo.rotateY(Math.PI / 2); // (u = −z, v = y) → z, y; extrusão em X
+    const hubY = tr.topY - 4,
+      hubZ = tr.pivotZ - 2;
     for (const side of [-1, 1]) {
-      // suporte do eixo da bandeja (fino, por fora do amortecedor)
-      mech.add(box(m.galv, side < 0 ? -203 : 200, side < 0 ? -200 : 203, tr.topY - 16, tr.topY + 6, tr.pivotZ - 14, tr.pivotZ));
+      const rng = (a, b) => (side < 0 ? [-b, -a] : [a, b]);
+      const plate = mesh(plGeo, m.mech);
+      plate.position.x = side < 0 ? -pl.x - pl.t : pl.x;
+      mech.add(plate);
+      const x0 = pl.x + pl.t;
+      mech.add(cylX(m.chrome, 11, ...rng(x0, x0 + 2), hubY, hubZ, 28));
+      mech.add(cylX(m.dark, 4.5, ...rng(x0 + 2, 203), hubY, hubZ, 12));
     }
     // laterais da bandeja (chapas triangulares) + pino do amortecedor
     const cs = new THREE.Shape();
@@ -383,21 +396,29 @@ export class Locker {
       const c = mesh(cheekGeo, m.mech);
       c.position.x = side < 0 ? -tr.cheek.x - 2 : tr.cheek.x;
       trayPivot.add(c);
-      trayPivot.add(cylX(m.chrome, 4, side < 0 ? -st.x - 3 : tr.cheek.x, side < 0 ? -tr.cheek.x : st.x + 3, pv, -pu, 12));
+      const pinOut = lk.x + lk.t / 2 + 1.5; // o pino passa pelo rasgo da biela
+      trayPivot.add(cylX(m.chrome, 4, side < 0 ? -pinOut : tr.cheek.x, side < 0 ? -tr.cheek.x : pinOut, pv, -pu, 12));
     }
 
     // batente fixo no fundo: cobre a ponta de trás da bandeja quando ela está horizontal
     const ix = SPEC.W / 2 - SPEC.sheet;
     this.parts.back.add(box(m.mech, -ix, ix, tr.topY + 1, tr.topY + 3, -hz + 4, -hz + 4 + tr.rearStop));
 
-    // ---- Amortecedores telescópicos (manivela da porta → lateral da bandeja) ----
-    this.struts = [];
+    // ---- Bielas chatas com rasgo (manivela da porta → pino da lateral da bandeja) ----
+    const { min: lMin, max: lMax } = this._linkRange();
+    const barLen = lMax + lk.over * 2;
+    this.links = [];
     for (const side of [-1, 1]) {
-      const tube = mesh(new THREE.CylinderGeometry(st.r, st.r, st.tube, 16), m.dark);
-      const rod = mesh(new THREE.CylinderGeometry(3, 3, st.rod, 12), m.chrome);
-      tube.position.x = rod.position.x = side * (st.x + 1);
-      mech.add(tube, rod);
-      this.struts.push({ tube, rod });
+      const g = new THREE.Group();
+      const bar = mesh(new THREE.BoxGeometry(lk.t, barLen, lk.w), m.mech);
+      bar.position.y = barLen / 2 - lk.over;
+      const slot = mesh(new THREE.BoxGeometry(lk.t + 0.6, lMax - lMin + lk.slotPad * 2, 4.5), m.dark);
+      slot.position.y = (lMin + lMax) / 2;
+      slot.userData.noEdges = true;
+      g.add(bar, slot);
+      g.position.x = side * lk.x;
+      mech.add(g);
+      this.links.push(g);
     }
     this.trayTilt = tr.tilt;
 
@@ -449,7 +470,24 @@ export class Locker {
     // aba superior acompanha a bandeja (horizontal com a porta aberta)
     this.topFlap.rotation.x = -(SPEC.topFlap.down * this.trayTilt) / SPEC.tray.tilt * DEG;
 
-    // pontos do amortecedor (z, y) no referencial do locker
+    // biela: do pino da manivela (A) em direção ao pino da bandeja (B); o rasgo absorve a folga
+    const { A, B } = this._linkEnds(this.hopper.angle, this.trayTilt);
+    const dir = B.clone().sub(A);
+    const len = dir.length();
+    dir.divideScalar(len);
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, dir.y, dir.x));
+    for (const g of this.links) {
+      g.quaternion.copy(q);
+      g.position.y = A.y;
+      g.position.z = A.x;
+    }
+    this.linkLength = len;
+  }
+
+  // Pinos da biela (z, y) no referencial do locker: A na manivela da porta, B na bandeja
+  _linkEnds(doorDeg, tiltDeg) {
+    const th = doorDeg * DEG;
+    const ta = -tiltDeg * DEG;
     const { crank: ck } = SPEC.hopper;
     const p0 = this.hopperPivotPos;
     const A = new THREE.Vector2(
@@ -462,20 +500,20 @@ export class Locker {
       tr.pivotZ + pv * Math.sin(ta) - pu * Math.cos(ta),
       tr.topY + pv * Math.cos(ta) + pu * Math.sin(ta)
     );
-    const dir = B.clone().sub(A);
-    const len = dir.length();
-    dir.divideScalar(len);
-    const st = SPEC.strut;
-    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, dir.y, dir.x));
-    for (const { tube, rod } of this.struts) {
-      tube.quaternion.copy(q);
-      rod.quaternion.copy(q);
-      tube.position.z = A.x + dir.x * (st.tube / 2);
-      tube.position.y = A.y + dir.y * (st.tube / 2);
-      rod.position.z = B.x - dir.x * (st.rod / 2);
-      rod.position.y = B.y - dir.y * (st.rod / 2);
+    return { A, B };
+  }
+
+  // Menor e maior distância A–B ao longo do curso da porta (define o comprimento do rasgo)
+  _linkRange() {
+    let min = Infinity,
+      max = 0;
+    for (let d = 0; d <= SPEC.hopper.maxAngle; d++) {
+      const { A, B } = this._linkEnds(d, this._trayTiltFor(d));
+      const l = A.distanceTo(B);
+      min = Math.min(min, l);
+      max = Math.max(max, l);
     }
-    this.strutLength = len;
+    return { min, max };
   }
 
   _applyExplode(v) {

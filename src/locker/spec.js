@@ -48,7 +48,7 @@ export const SPEC = {
     faceW: 372,
     pivot: { y: 4, u: 4 }, // eixo da dobradiça relativo à quina (u = para trás)
     maxAngle: 90,
-    crank: { y: -60, z: -10, x: 194 }, // manivela no eixo da porta (aciona o amortecedor)
+    crank: { y: -44, z: -9, x: 194 }, // manivela no eixo da porta (aciona a biela da bandeja)
   },
 
   // Bandeja interna (mecanismo tipo Milkcan): ocupa a profundidade toda logo abaixo da
@@ -60,14 +60,19 @@ export const SPEC = {
     pivotZ: 168, // borda da frente (eixo), atrás dos retornos dos montantes
     topY: HOPPER_Y - 6, // topo da bandeja = fundo da boca
     length: 330, // até z = -162
-    halfW: 190, // fresta lateral de 13 mm até a parede (por onde passa o amortecedor)
+    halfW: 190, // fresta lateral de 13 mm até a parede (por onde passam as bielas)
     tilt: 30, // inclinação com a porta fechada (graus)
     sealBy: 10, // graus de abertura da porta em que a bandeja já está horizontal
-    cheek: { x: 188, pts: [[2, 0], [2, 120], [90, 0]], pin: [12, 100] }, // laterais (u, v)
+    cheek: { x: 188, pts: [[2, 0], [2, 124], [92, 0]], pin: [5, 114] }, // laterais (u, v)
     rearStop: 20, // batente na porta traseira que cobre a ponta da bandeja
   },
 
-  strut: { x: 194, r: 4.5, tube: 70, rod: 80 }, // amortecedor telescópico manivela → bandeja
+  // Biela chata (manivela da porta → lateral da bandeja). Tem um rasgo: no início do curso
+  // o pino da bandeja corre no rasgo (folga), e é isso que deixa a bandeja vedar cedo.
+  link: { x: 192.5, w: 10, t: 3, over: 7, slotPad: 4 },
+
+  // Placa lateral trapezoidal fixa na parede (z, y): carrega o disco/eixo da bandeja.
+  plate: { x: 198, t: 2, pts: [[172, 626], [172, 806], [56, 700], [56, 626]] },
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira
