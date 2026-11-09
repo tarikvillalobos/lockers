@@ -100,12 +100,18 @@ export class Parcels {
     return area / (w * d);
   }
 
+  // Comprimento máximo da caixa na bandeja: do batente de baixo (v=27) até a aba de cima
+  _maxTrayLength() {
+    const { faceH, topStop } = SPEC.hopper;
+    return Math.floor(faceH - 2 - topStop.length * Math.sin(topStop.tilt * DEG) - 27 - 5);
+  }
+
   _pickDims() {
     const order = [...PRESETS].sort(() => Math.random() - 0.5);
     for (const p of order) {
       const dims = { name: p.name, w: jitter(p.w), a: jitter(p.a), b: jitter(p.b) };
       dims.w = Math.min(dims.w, 345);
-      dims.a = Math.min(dims.a, SPEC.hopper.faceH - 32); // cabe na bandeja
+      dims.a = Math.min(dims.a, this._maxTrayLength()); // cabe na bandeja
       if (this.findSpot(dims.w + 6, dims.a + 6, dims.b)) return dims;
     }
     return null;

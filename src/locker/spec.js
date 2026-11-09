@@ -42,7 +42,9 @@ export const SPEC = {
     maxAngle: 75,
     // Aba anti-furto na borda de cima da face: fechado, aponta para dentro;
     // aberto, fica de pé na ponta da bandeja e dificulta puxar itens de dentro.
-    topStop: 40,
+    // Com 80 mm a 90° ela bateria na travessa de cima ao abrir; inclinada 10° para
+    // o lado da dobradiça, passa com ~6 mm de folga.
+    topStop: { length: 80, tilt: 10 },
     // Chapa de fundo do basculante (gira junto), dobrada: 1º trecho = aba original
     // (~23°), depois dobra para baixo a 60°. Pontos em (u = para trás, v = para cima).
     floor: [
