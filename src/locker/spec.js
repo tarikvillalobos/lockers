@@ -5,7 +5,7 @@
 // Layout inspirado no Milkcan Hamilton (de cima para baixo, na frente):
 //   tampo → fenda de cartas → painel "Cartas" → rebaixo de pegada (3 batentes)
 //   → porta de encomendas ripada (abre para baixo, vira prateleira) → frente ripada.
-// Atrás: porta de acesso de altura inteira (cartas na prateleira de cima + encomendas).
+// Atrás: porta ripada igual à de baixo da frente (mesmo vão, espelhada).
 const HOPPER_Y = 638; // quina inferior-frontal da porta de encomendas
 const HOPPER_FACE_H = 220;
 
@@ -29,8 +29,8 @@ export const SPEC = {
     slatH: 61, // ripas horizontais na frente
   },
 
-  // Porta traseira de acesso: altura inteira (cartas + encomendas)
-  backDoor: { y0: 24, h: 962, lockY: 860 },
+  // Porta traseira de acesso: igual à frontal inferior (mesma altura, ripas e fechadura)
+  backDoor: { y0: 24, h: 490, lockY: 348 },
 
   lowerRail: { y0: 517, y1: HOPPER_Y - 6 },
   upperRail: { y0: HOPPER_Y + HOPPER_FACE_H + 6, y1: HOPPER_Y + HOPPER_FACE_H + 14 }, // 3 batentes

@@ -184,7 +184,7 @@ export class Locker {
       else this.sidePanelL = panel;
     }
 
-    // Fundo: só a faixa acima da porta traseira de altura inteira + retornos (batente da came)
+    // Fundo: faixa acima da porta traseira + retornos (batente da came)
     const back = this._part('back', [0, 0, -260]);
     const bd = SPEC.backDoor;
     const fx = ix - stile.w; // borda interna dos montantes (187)
@@ -275,13 +275,8 @@ export class Locker {
     for (const cx of [-205, -163]) {
       body.add(box(m.front, cx - 11, cx + 11, 14, h - 14, -14, -2));
     }
-    // frente ripada (porta inferior da frente se confunde com a fachada)
-    if (front) addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
-    // porta traseira: batente interno que cobre a ponta da bandeja anti-furto
-    if (!front) {
-      const ty = SPEC.tray.topY - y0;
-      body.add(box(m.mech, -w + 4, -4, ty + 1, ty + 3, -d - SPEC.tray.rearStop, -d));
-    }
+    // frente ripada (as duas portas se confundem com a fachada)
+    addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
     // dobradiças internas
     for (const y of [60, h - 60]) {
       body.add(box(m.galv, -26, -2, y - 20, y + 20, -8, -2));
@@ -291,7 +286,7 @@ export class Locker {
     // Fechadura tambor + came
     const L = door.lock;
     const lock = new THREE.Group();
-    lock.position.set(L.x, front ? L.y : backDoor.lockY, front ? 5 : 0);
+    lock.position.set(L.x, front ? L.y : backDoor.lockY, 5);
     lock.userData.action = 'lock';
     lock.userData.door = which;
     body.add(lock);
@@ -303,7 +298,7 @@ export class Locker {
     lock.add(cylZ(m.galv, 9, -24, -2, 0, 0, 20));
 
     const cam = new THREE.Group();
-    cam.position.z = front ? -31 : -26; // came atrás do retorno do montante
+    cam.position.z = -31; // came atrás do retorno do montante
     cam.add(box(m.galv, -52, 6, -8, 8, -2, 2));
     lock.add(cam);
     ds.cam = cam;

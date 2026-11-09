@@ -17,7 +17,7 @@ npm run build    # gera dist/ estático
 
 | Peça | Comportamento |
 | --- | --- |
-| **Fachada (base: Milkcan Hamilton)** | De cima para baixo: fenda de cartas, painel "Cartas", rebaixo de pegada com 3 batentes, porta de encomendas ripada e frente ripada. Atrás, porta de acesso de altura inteira. |
+| **Fachada (base: Milkcan Hamilton)** | De cima para baixo: fenda de cartas, painel "Cartas", rebaixo de pegada com 3 batentes, porta de encomendas ripada e frente ripada. Atrás, a mesma porta ripada da frente (espelhada). |
 | **Cartas** | Entram pela fenda (a aba interna balança), escorregam pela calha do nicho e caem na prateleira de cima. Só saem pela porta traseira. |
 | **Porta de depósito** (basculante) | Dobradiça embaixo; abre até 90° e vira prateleira. Clique ou arraste. |
 | **Bandeja giratória anti-furto** | Duas placas laterais + piso formam um "U" que gira num eixo fixo no meio da boca. Com a porta aberta (90°) as placas ficam em pé e o piso, horizontal e contínuo com a porta. Uma biela chata liga um pino da porta a um pino da placa: ao fechar, a bandeja gira 90° (o piso vira parede logo atrás da porta) e a encomenda escorrega e cai no compartimento. Uma segunda biela, presa na placa, desce a aba superior (viseira) até a vertical. Inspirado no mecanismo Milkcan; os pinos foram resolvidos numericamente (`spec.js`). |
