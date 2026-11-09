@@ -362,7 +362,10 @@ function updateStatus() {
   else if (Math.abs(ha - locker.hopper.target) > 0.1) set(ui.hopper, `Movendo ${ha.toFixed(0)}°`, 'warn');
   else set(ui.hopper, ha >= max - 0.1 ? `Aberto ${max}°` : `Aberto ${ha.toFixed(0)}°`, 'on');
 
-  set(ui.baffle, ha > 0.3 ? 'Gaveta isolada' : 'Pronta', ha > 0.3 ? 'on' : 'ok');
+  const tt = locker.trayTilt;
+  if (ha < 0.3) set(ui.baffle, `Bandeja inclinada ${tt.toFixed(0)}°`, 'ok');
+  else if (tt > 0.5) set(ui.baffle, 'Bandeja subindo…', 'warn');
+  else set(ui.baffle, 'Bandeja vedando', 'on');
 
   for (const [w, el] of [
     ['front', ui.door],

@@ -17,8 +17,8 @@ npm run build    # gera dist/ estático
 
 | Peça | Comportamento |
 | --- | --- |
-| **Basculante** (gaveta de depósito) | Abre até 75°. Clique para abrir/fechar ou arraste para cima/baixo. Ao fechar, a encomenda cai no compartimento. |
-| **Anti-furto** | Cúpula fixa concêntrica ao eixo do basculante + chapas laterais. A chapa de fundo da gaveta desliza rente à cúpula (~8 mm) em qualquer ângulo, então mesmo entreaberta a gaveta fica isolada do compartimento. |
+| **Porta de depósito** (basculante) | Dobradiça embaixo; abre até 90° e vira prateleira. Clique ou arraste. |
+| **Bandeja anti-furto** | Bandeja interna que ocupa a profundidade toda, logo abaixo da boca. Com a porta aberta (já a partir de 10°) ela fica horizontal e separa a parte de cima do compartimento; ao fechar a porta, um amortecedor telescópico inclina a bandeja 35° para trás e a encomenda escorrega e cai. Inspirado no mecanismo Milkcan. |
 | **Fechaduras tambor** (frente e trás) | Clique: a chave entra, gira 90° e o came libera/trava o montante. Cada porta tem a sua. |
 | **Portas frontal e traseira** | Mesmo vão (368 × 490 mm), abrem 105°; a traseira é a frontal espelhada. Trancadas, só "tremem". |
 | **Encomendas** | "Depositar" gera caixas com tamanhos variados que caem e se empilham com apoio real. Com uma das portas aberta, clique numa caixa para retirá-la (as de cima reacomodam). |

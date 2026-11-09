@@ -262,12 +262,12 @@ export class Locker {
   }
 
   _buildMechanism() {
-    const { D, hopper: hp, hood } = SPEC;
+    const { D, hopper: hp, tray: tr, strut: st } = SPEC;
     const m = this.m;
     const hz = D / 2;
     const mech = this._part('mech', [0, 0, 0]);
 
-    // ---- Basculante ----
+    // ---- Porta de depósito (basculante): dobradiça embaixo, abre para fora ----
     const corner = new THREE.Vector2(hz, hp.cornerY); // (z, y)
     this.hopperPivotPos = new THREE.Vector2(corner.x - hp.pivot.u, corner.y + hp.pivot.y);
     const pivot = new THREE.Group();
@@ -282,89 +282,110 @@ export class Locker {
     this.hopperBody = body;
 
     const fw = hp.faceW / 2;
-    // face frontal
-    body.add(box(m.front, -fw, fw, 0, hp.faceH, -2, 0));
-    // aba-puxador superior (dobrada a 45° para fora)
-    body.add(strip(m.front, hp.faceW, 2, [hp.faceH, -1], [hp.faceH - 13, 12]));
+    body.add(box(m.front, -fw, fw, 0, hp.faceH, -2, 0)); // face
+    body.add(strip(m.front, hp.faceW, 2, [hp.faceH, -1], [hp.faceH - 13, 12])); // puxador
+    // reforço interno da porta
+    body.add(box(m.front, -fw + 10, fw - 10, 20, 34, -14, -2));
 
-    // chapa de fundo dobrada (gira com o basculante)
-    const fl = hp.floor;
-    for (let i = 0; i < fl.length - 1; i++) {
-      const [u0, v0] = fl[i];
-      const [u1, v1] = fl[i + 1];
-      body.add(strip(m.mech, hp.sideX * 2, 2, [v0, i === 0 ? -2 - u0 : -u0], [v1, -u1]));
-    }
-    // reforço arredondado na dobra
-    body.add(cylX(m.mech, 2.2, -hp.sideX, hp.sideX, fl[1][1], -fl[1][0], 12));
-
-    // laterais triangulares
-    const s = new THREE.Shape();
-    const pr = hp.profile;
-    s.moveTo(pr[0][0], pr[0][1]);
-    for (let i = 1; i < pr.length; i++) {
-      const p = pr[i];
-      if (p[0] === 'q') s.quadraticCurveTo(p[1], p[2], p[3], p[4]);
-      else s.lineTo(p[0], p[1]);
-    }
-    s.lineTo(0, 0);
-    const triGeo = new THREE.ExtrudeGeometry(s, { depth: 2, bevelEnabled: false, curveSegments: 18 });
-    triGeo.rotateY(Math.PI / 2);
+    // eixo da dobradiça + manivelas (giram com a porta) + suportes fixos estreitos
+    const ck = hp.crank;
+    pivot.add(cylX(m.chrome, 4.5, -200, 200, 0, 0, 16));
     for (const side of [-1, 1]) {
-      const tri = mesh(triGeo, m.mech);
-      tri.position.x = side < 0 ? -hp.sideX - 2 : hp.sideX;
-      body.add(tri);
+      const crank = strip(m.galv, 3, 12, [0, 0], [ck.y, ck.z]);
+      crank.position.x = side * (ck.x + 1.5);
+      pivot.add(crank);
+      pivot.add(cylX(m.chrome, 4, side < 0 ? -ck.x - 4 : ck.x - 1, side < 0 ? -ck.x + 1 : ck.x + 4, ck.y, ck.z, 12));
+      const p0 = this.hopperPivotPos;
+      mech.add(box(m.galv, side < 0 ? -203 : 199, side < 0 ? -199 : 203, p0.y - 18, p0.y + 18, p0.x - 16, p0.x + 2));
     }
 
-    // eixo da dobradiça do basculante + suportes laterais (fixos)
+    // ---- Bandeja interna (profundidade toda) ----
+    const trayPivot = new THREE.Group();
+    trayPivot.position.set(0, tr.topY, tr.pivotZ);
+    mech.add(trayPivot);
+    this.tray = trayPivot;
+    trayPivot.add(box(m.mech, -tr.halfW, tr.halfW, -2, 0, -tr.length, 0));
+    // dobra de reforço na borda de trás (para baixo, não segura encomenda)
+    trayPivot.add(box(m.mech, -tr.halfW, tr.halfW, -14, -2, -tr.length, -tr.length + 2));
+    // dobradiça da bandeja (frente)
+    trayPivot.add(cylX(m.chrome, 4, -203, 203, -4, -2, 16));
     for (const side of [-1, 1]) {
-      const sx = side;
-      pivot.add(cylX(m.chrome, 4.5, sx < 0 ? -200 : 180, sx < 0 ? -180 : 200, 0, 0, 16));
-      mech.add(
-        box(m.galv, sx < 0 ? -203 : 190, sx < 0 ? -190 : 203, this.hopperPivotPos.y - 18, this.hopperPivotPos.y + 18, this.hopperPivotPos.x - 16, this.hopperPivotPos.x + 2)
-      );
+      // suporte do eixo da bandeja (fino, por fora do amortecedor)
+      mech.add(box(m.galv, side < 0 ? -203 : 200, side < 0 ? -200 : 203, tr.topY - 16, tr.topY + 6, tr.pivotZ - 14, tr.pivotZ));
+    }
+    // laterais da bandeja (chapas triangulares) + pino do amortecedor
+    const cs = new THREE.Shape();
+    const cp = tr.cheek.pts;
+    cs.moveTo(cp[0][0], cp[0][1]);
+    for (let i = 1; i < cp.length; i++) cs.lineTo(cp[i][0], cp[i][1]);
+    cs.lineTo(cp[0][0], cp[0][1]);
+    const cheekGeo = new THREE.ExtrudeGeometry(cs, { depth: 2, bevelEnabled: false });
+    cheekGeo.rotateY(Math.PI / 2); // (u, v) → (z = −u, y = v), extrusão em X
+    const [pu, pv] = tr.cheek.pin;
+    for (const side of [-1, 1]) {
+      const c = mesh(cheekGeo, m.mech);
+      c.position.x = side < 0 ? -tr.cheek.x - 2 : tr.cheek.x;
+      trayPivot.add(c);
+      trayPivot.add(cylX(m.chrome, 4, side < 0 ? -st.x - 3 : tr.cheek.x, side < 0 ? -tr.cheek.x : st.x + 3, pv, -pu, 12));
     }
 
-    // ---- Cúpula anti-furto (fixa, concêntrica ao eixo do basculante) ----
-    const hp0 = this.hopperPivotPos; // (z, y)
-    const hoodMat = m.galv.clone();
-    hoodMat.side = THREE.DoubleSide;
-    const t0 = (90 + hood.from) * DEG;
-    const tl = (hood.to - hood.from) * DEG;
+    // batente fixo no fundo: cobre a ponta de trás da bandeja quando ela está horizontal
     const ix = SPEC.W / 2 - SPEC.sheet;
-    const hoodGeo = new THREE.CylinderGeometry(hood.radius, hood.radius, ix * 2, 72, 1, true, t0, tl);
-    hoodGeo.rotateZ(Math.PI / 2); // eixo em X; ângulo θ → (y = r·sinθ, z = r·cosθ)
-    const hoodMesh = mesh(hoodGeo, hoodMat);
-    hoodMesh.position.set(0, hp0.y, hp0.x);
-    mech.add(hoodMesh);
+    this.parts.back.add(box(m.mech, -ix, ix, tr.topY + 1, tr.topY + 3, -hz + 4, -hz + 4 + tr.rearStop));
 
-    // chapas laterais fixas: setor da cúpula, atrás dos retornos dos montantes
-    const arcPt = (deg) => [hp0.x - hood.radius * Math.sin(deg * DEG), hp0.y + hood.radius * Math.cos(deg * DEG)];
-    const lineAtZ = (deg) => {
-      const [z, y] = arcPt(deg);
-      const t = (hp0.x - hood.guardFrontZ) / (hp0.x - z);
-      return [hood.guardFrontZ, hp0.y + (y - hp0.y) * t];
-    };
-    const gs = new THREE.Shape();
-    const g0 = lineAtZ(hood.from);
-    gs.moveTo(-g0[0], g0[1]);
-    for (let d = hood.from; d <= hood.to + 1e-6; d += (hood.to - hood.from) / 40) {
-      const [z, y] = arcPt(d);
-      gs.lineTo(-z, y);
-    }
-    const g1 = lineAtZ(hood.to);
-    gs.lineTo(-g1[0], g1[1]);
-    gs.lineTo(-g0[0], g0[1]);
-    const guardGeo = new THREE.ExtrudeGeometry(gs, { depth: 2, bevelEnabled: false });
-    guardGeo.rotateY(Math.PI / 2); // shape (−z, y) → (z, y), extrusão em X
+    // ---- Amortecedores telescópicos (manivela da porta → lateral da bandeja) ----
+    this.struts = [];
     for (const side of [-1, 1]) {
-      const g = mesh(guardGeo, m.galv);
-      g.position.x = side < 0 ? -hood.guardX - 2 : hood.guardX;
-      mech.add(g);
+      const tube = mesh(new THREE.CylinderGeometry(st.r, st.r, st.tube, 16), m.dark);
+      const rod = mesh(new THREE.CylinderGeometry(3, 3, st.rod, 12), m.chrome);
+      tube.position.x = rod.position.x = side * (st.x + 1);
+      mech.add(tube, rod);
+      this.struts.push({ tube, rod });
     }
+    this.trayTilt = tr.tilt;
+  }
+
+  // Ângulo da bandeja em função da porta: horizontal a partir de `sealBy` graus
+  _trayTiltFor(doorDeg) {
+    const { tilt, sealBy } = SPEC.tray;
+    const s = THREE.MathUtils.clamp(doorDeg / sealBy, 0, 1);
+    return tilt * (1 - s * s * (3 - 2 * s));
   }
 
   _updateMechanism() {
-    this.hopperPivot.rotation.x = this.hopper.angle * DEG;
+    const th = this.hopper.angle * DEG;
+    this.hopperPivot.rotation.x = th;
+    this.trayTilt = this._trayTiltFor(this.hopper.angle);
+    const ta = -this.trayTilt * DEG;
+    this.tray.rotation.x = ta;
+
+    // pontos do amortecedor (z, y) no referencial do locker
+    const { crank: ck } = SPEC.hopper;
+    const p0 = this.hopperPivotPos;
+    const A = new THREE.Vector2(
+      p0.x + ck.y * Math.sin(th) + ck.z * Math.cos(th),
+      p0.y + ck.y * Math.cos(th) - ck.z * Math.sin(th)
+    );
+    const tr = SPEC.tray;
+    const [pu, pv] = tr.cheek.pin;
+    const B = new THREE.Vector2(
+      tr.pivotZ + pv * Math.sin(ta) - pu * Math.cos(ta),
+      tr.topY + pv * Math.cos(ta) + pu * Math.sin(ta)
+    );
+    const dir = B.clone().sub(A);
+    const len = dir.length();
+    dir.divideScalar(len);
+    const st = SPEC.strut;
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, dir.y, dir.x));
+    for (const { tube, rod } of this.struts) {
+      tube.quaternion.copy(q);
+      rod.quaternion.copy(q);
+      tube.position.z = A.x + dir.x * (st.tube / 2);
+      tube.position.y = A.y + dir.y * (st.tube / 2);
+      rod.position.z = B.x - dir.x * (st.rod / 2);
+      rod.position.y = B.y - dir.y * (st.rod / 2);
+    }
+    this.strutLength = len;
   }
 
   _applyExplode(v) {

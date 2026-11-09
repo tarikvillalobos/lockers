@@ -2,10 +2,9 @@
 // Eixos: X = largura (esq → dir, visto de frente), Y = altura, Z = profundidade (+Z = frente).
 // Fonte: desenhos SolidWorks (410 × 380 × 1020 mm) + vistas laterais do mecanismo.
 
-// Basculante: altura da face (antes 300 mm) e posição. As travessas inferior e
-// superior acompanham para fechar a frente logo abaixo e acima dele; o mecanismo
-// (pino, biela, defletor) é relativo à quina e sobe junto.
-const HOPPER_Y = 672; // quina inferior-frontal da face (antes 572)
+// Porta de depósito (basculante): altura da face e posição. As travessas inferior e
+// superior acompanham para fechar a frente logo abaixo e acima dela.
+const HOPPER_Y = 672; // quina inferior-frontal da face
 const HOPPER_FACE_H = 240;
 
 export const SPEC = {
@@ -31,44 +30,34 @@ export const SPEC = {
   upperRail: { y0: HOPPER_Y + HOPPER_FACE_H + 6, y1: 926 },
   header: { y0: 926, y1: 1000 },
 
-  // Basculante (gaveta de depósito). Quina inferior-frontal da face em y=HOPPER_Y, z=190.
+  // Porta de depósito (basculante): dobradiça embaixo, abre para fora até ficar na
+  // horizontal (vira prateleira para apoiar a encomenda).
   hopper: {
     cornerY: HOPPER_Y,
     faceH: HOPPER_FACE_H,
     faceW: 372,
-    sideX: 182, // face interna das laterais triangulares
     pivot: { y: 4, u: 4 }, // eixo da dobradiça relativo à quina (u = para trás)
-    maxAngle: 75,
-    // Chapa de fundo do basculante (gira junto), dobrada: 1º trecho = aba original
-    // (~23°), depois dobra para baixo a 60° até quase o raio da cúpula (232 mm do eixo).
-    // Pontos em (u = para trás, v = para cima).
-    floor: [
-      [0, 25],
-      [60, 0],
-      [158, -170],
-    ],
-    // contorno da lateral em (u = para trás, v = para cima): triângulo + "bochecha"
-    // que desce cobrindo a lateral da chapa de fundo (sem fresta para a mão passar)
-    profile: [
-      [0, 0],
-      [0, HOPPER_FACE_H],
-      [140, 52],
-      // curva arredondada até a base
-      ['q', 160, 18, 128, 0],
-      [163, -165],
-      [158, -170],
-      [60, -1],
-    ],
+    maxAngle: 90,
+    crank: { y: -60, z: -10, x: 194 }, // manivela no eixo da porta (aciona o amortecedor)
   },
 
-  // Defletor anti-furto pendurado no fundo, acionado pela biela.
-  // Eixo 100 mm mais alto que no CAD e biela mais perto do eixo (giro de ~49°):
-  // aberto, o pé do defletor encosta a ~15 mm da chapa de fundo do basculante.
-  // Anti-furto: cúpula fixa concêntrica ao eixo do basculante. A ponta da chapa de
-  // fundo da gaveta desliza rente a ela (folga ~8 mm) em QUALQUER ângulo de abertura,
-  // então a gaveta fica isolada do compartimento mesmo entreaberta. Ângulos (graus)
-  // medidos a partir da vertical, para trás. Chapas laterais fixas fecham as laterais.
-  hood: { radius: 240, from: 6, to: 138.5, guardX: 186, guardFrontZ: 171 },
+  // Bandeja interna (mecanismo tipo Milkcan): ocupa a profundidade toda logo abaixo da
+  // boca. Porta aberta → bandeja horizontal, separando a parte de cima (acessível) do
+  // compartimento. Porta fechando → nos últimos `sealBy` graus a bandeja inclina para
+  // trás (`tilt`) e a encomenda escorrega e cai. Assim ela já está vedando antes de a
+  // porta abrir o suficiente para passar a mão.
+  tray: {
+    pivotZ: 168, // borda da frente (eixo), atrás dos retornos dos montantes
+    topY: HOPPER_Y - 6, // topo da bandeja = fundo da boca
+    length: 330, // até z = -162
+    halfW: 190, // fresta lateral de 13 mm até a parede (por onde passa o amortecedor)
+    tilt: 35, // inclinação com a porta fechada (graus)
+    sealBy: 10, // graus de abertura da porta em que a bandeja já está horizontal
+    cheek: { x: 188, pts: [[2, 0], [2, 120], [90, 0]], pin: [12, 100] }, // laterais (u, v)
+    rearStop: 36, // batente fixo no fundo que cobre a ponta da bandeja
+  },
+
+  strut: { x: 194, r: 4.5, tube: 70, rod: 80 }, // amortecedor telescópico manivela → bandeja
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira

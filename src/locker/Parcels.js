@@ -43,8 +43,10 @@ export class Parcels {
 
   _make(dims) {
     const { list, code } = createParcelMaterials();
-    const geo = new THREE.BoxGeometry(dims.w, dims.a, dims.b);
-    const mesh = new THREE.Mesh(geo, list);
+    // deitada: w em X, b (altura) em Y, a (comprimento) em Z
+    const geo = new THREE.BoxGeometry(dims.w, dims.b, dims.a);
+    const mats = [list[0], list[1], list[5], list[2], list[3], list[4]]; // topo com etiqueta
+    const mesh = new THREE.Mesh(geo, mats);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.userData.parcel = { ...dims, code };
@@ -100,16 +102,17 @@ export class Parcels {
     return area / (w * d);
   }
 
-  // Comprimento máximo da caixa na bandeja (cabe na face do basculante)
+  // Comprimento máximo da caixa na bandeja interna
   _maxTrayLength() {
-    return SPEC.hopper.faceH - 32;
+    return SPEC.tray.length - 40;
   }
 
   _pickDims() {
     const order = [...PRESETS].sort(() => Math.random() - 0.5);
     for (const p of order) {
       const dims = { name: p.name, w: jitter(p.w), a: jitter(p.a), b: jitter(p.b) };
-      dims.w = Math.min(dims.w, 345);
+      dims.w = Math.min(dims.w, (SPEC.tray.cheek.x - 8) * 2);
+      dims.b = Math.min(dims.b, SPEC.hopper.faceH - 40); // passa pela boca
       dims.a = Math.min(dims.a, this._maxTrayLength()); // cabe na bandeja
       if (this.findSpot(dims.w + 6, dims.a + 6, dims.b)) return dims;
     }
@@ -118,7 +121,7 @@ export class Parcels {
 
   async deposit() {
     if (this.busy) return { ok: false };
-    if (this.inHopper) return { ok: false, msg: 'Já existe uma encomenda no basculante — feche-o' };
+    if (this.inHopper) return { ok: false, msg: 'Já existe uma encomenda na bandeja — feche a porta' };
     const dims = this._pickDims();
     if (!dims) return { ok: false, msg: 'Locker cheio — retire as encomendas' };
     this.busy = true;
@@ -126,20 +129,21 @@ export class Parcels {
     L.setHopperAngle(SPEC.hopper.maxAngle);
     await L.waitHopper();
 
-    // coloca a caixa sobre a bandeja (referencial da gaveta)
+    // entra pela boca (sobre a porta aberta) e desliza até o meio da bandeja interna
     const p = this._make(dims);
-    const restY = 27 + dims.a / 2;
-    const restZ = -2 - dims.b / 2 - 0.5;
-    p.position.set((Math.random() - 0.5) * (345 - dims.w) * 0.6, restY + 40, restZ - 320);
-    p.rotation.set(0, 0, (Math.random() - 0.5) * 0.25);
-    L.hopperBody.add(p);
+    const restY = dims.b / 2 + 0.5;
+    const restZ = -Math.max(dims.a / 2 + 10, SPEC.tray.length * 0.5);
+    const x = (Math.random() - 0.5) * ((SPEC.tray.cheek.x - 8) * 2 - dims.w) * 0.6;
+    p.position.set(x, restY + 6, 200 + dims.a / 2);
+    p.rotation.set(0, (Math.random() - 0.5) * 0.3, 0);
+    L.tray.add(p);
     this.inHopper = p;
     this.placing = true;
     const from = p.position.clone();
-    const rz = p.rotation.z;
-    await tween(0.6, (e) => {
-      p.position.lerpVectors(from, new THREE.Vector3(from.x, restY, restZ), e);
-      p.rotation.z = rz * (1 - e);
+    const ry = p.rotation.y;
+    await tween(0.8, (e) => {
+      p.position.lerpVectors(from, new THREE.Vector3(x, restY, restZ), e);
+      p.rotation.y = ry * (1 - e) * 0.5;
     }, ease.outCubic);
     this.placing = false;
     sfx.thud(0.45);
@@ -151,7 +155,7 @@ export class Parcels {
     return { ok: true, msg: `Encomenda depositada (${dims.name.toLowerCase()})` };
   }
 
-  // Solta a caixa do basculante quando ele chega perto de fechado
+  // Solta a caixa quando a bandeja começa a inclinar (porta quase fechada)
   _release() {
     const p = this.inHopper;
     this.inHopper = null;
@@ -178,18 +182,21 @@ export class Parcels {
     const p = item.mesh;
     const p0 = p.position.clone();
     const q0 = p.quaternion.clone();
-    const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'));
+    const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
     const target = new THREE.Vector3(item.x, item.base + item.h / 2, item.z);
-    // 1) escorrega pela rampa até a borda de trás; 2) cai até o ponto de apoio
-    // ponta de trás da chapa de fundo do basculante (posição fechada)
-    const fe = SPEC.hopper.floor[SPEC.hopper.floor.length - 1];
-    const ez = SPEC.D / 2 - fe[0];
-    const ey = SPEC.hopper.cornerY + fe[1];
-    const w = new THREE.Vector3(THREE.MathUtils.lerp(p0.x, target.x, 0.4), ey - 20, ez - 25);
-    const qm = new THREE.Quaternion().slerpQuaternions(q0, q1, 0.45);
+    // 1) escorrega pela bandeja inclinada até a borda de trás; 2) cai até o ponto de apoio
+    const tr = SPEC.tray;
+    const ta = -tr.tilt * DEG;
+    const back = -tr.length - item.d * 0.15;
+    const w = new THREE.Vector3(
+      p0.x,
+      tr.topY + (item.h / 2) * Math.cos(ta) - back * Math.sin(ta),
+      tr.pivotZ + (item.h / 2) * Math.sin(ta) + back * Math.cos(ta)
+    );
+    const qm = new THREE.Quaternion().setFromEuler(new THREE.Euler(ta * 1.2, yaw * 0.5, 0));
     const drop = Math.max(10, w.y - target.y);
     const T = THREE.MathUtils.clamp(Math.sqrt((2 * drop) / 9810) * 1.9, 0.3, 0.75);
-    return tween(0.38, (e) => {
+    return tween(0.45, (e) => {
       p.position.lerpVectors(p0, w, e);
       p.quaternion.slerpQuaternions(q0, qm, e);
     }, ease.inQuad)
@@ -285,6 +292,6 @@ export class Parcels {
 
   update() {
     const h = this.locker.hopper;
-    if (this.inHopper && !this.placing && h.angle < 8 && h.target <= h.angle) this._release();
+    if (this.inHopper && !this.placing && this.locker.trayTilt > 6 && h.target <= h.angle) this._release();
   }
 }
