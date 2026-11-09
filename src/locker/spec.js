@@ -38,7 +38,6 @@ export const SPEC = {
   lettersPanel: { y0: 924, y1: 984 },
   slot: { y0: 984, y1: 1000 }, // fenda de cartas logo abaixo do tampo
   lettersShelf: { z0: -168, z1: 132 }, // prateleira de cartas = teto da câmara de encomendas
-  topFlap: { len: 110, down: 40 }, // aba interna superior (desce quando a porta fecha)
 
   // Porta de depósito (basculante): dobradiça embaixo, abre para fora até ficar na
   // horizontal (vira prateleira para apoiar a encomenda).
@@ -48,31 +47,36 @@ export const SPEC = {
     faceW: 372,
     pivot: { y: 4, u: 4 }, // eixo da dobradiça relativo à quina (u = para trás)
     maxAngle: 90,
-    crank: { y: -44, z: -9, x: 194 }, // manivela no eixo da porta (aciona a biela da bandeja)
+    pin: { dy: 74.714, z: -3 }, // pino da biela na porta (a 75 mm da dobradiça, no referencial da dobradiça)
   },
 
-  // Bandeja interna (mecanismo tipo Milkcan): ocupa a profundidade toda logo abaixo da
-  // boca. Porta aberta → bandeja horizontal, separando a parte de cima (acessível) do
-  // compartimento. Porta fechando → nos últimos `sealBy` graus a bandeja inclina para
-  // trás (`tilt`) e a encomenda escorrega e cai. Assim ela já está vedando antes de a
-  // porta abrir o suficiente para passar a mão.
+  // Bandeja giratória (mecanismo tipo Milkcan): duas placas laterais + piso formam um "U" que
+  // gira num eixo fixo no meio da boca. Porta aberta (90°) → placas em pé e piso horizontal,
+  // contínuo com a porta. Ao fechar, uma biela (pino na porta → pino da placa) gira o conjunto
+  // 90°: o piso vira parede vertical logo atrás da porta e a encomenda escorrega e cai.
+  // Os pinos foram resolvidos numericamente para a placa ir de 0° a 90° quase linear.
   tray: {
-    pivotZ: 168, // borda da frente (eixo), atrás dos retornos dos montantes
-    topY: HOPPER_Y - 6, // topo da bandeja = fundo da boca
-    length: 330, // até z = -162
-    halfW: 190, // fresta lateral de 13 mm até a parede (por onde passam as bielas)
-    tilt: 30, // inclinação com a porta fechada (graus)
-    sealBy: 10, // graus de abertura da porta em que a bandeja já está horizontal
-    cheek: { x: 188, pts: [[2, 0], [2, 124], [92, 0]], pin: [5, 114] }, // laterais (u, v)
-    rearStop: 20, // batente na porta traseira que cobre a ponta da bandeja
+    pivot: { z: 60, y: 735 }, // eixo fixo (z, y)
+    plate: [[110, -95], [110, 95], [-140, 95], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
+    front: 110, // borda da frente do piso (rel. ao eixo)
+    back: -210, // borda de trás do piso
+    floorY: -93, // face de cima do piso (rel. ao eixo)
+    halfW: 188,
+    length: 320, // frente → fundo do piso
+    topY: 642, // face de cima do piso com a bandeja na horizontal (= batente traseiro)
+    closeAngle: 90, // giro com a porta fechada (graus)
+    pin: [70.165, 33.198], // pino da biela da porta, no referencial da placa (z, y)
+    cheek: { x: 188 }, // face interna das placas
+    rearStop: 16, // batente na porta traseira que cobre a ponta do piso
   },
 
-  // Biela chata (manivela da porta → lateral da bandeja). Tem um rasgo: no início do curso
-  // o pino da bandeja corre no rasgo (folga), e é isso que deixa a bandeja vedar cedo.
-  link: { x: 192.5, w: 10, t: 3, over: 7, slotPad: 4 },
+  // Aba superior (viseira): articulada na face de baixo da prateleira de cartas, acionada por uma
+  // segunda biela que sai de um pino da placa. Com a porta aberta fica deitada rente à prateleira;
+  // ao fechar desce até ficar na vertical.
+  flap: { z: 23.49, y: 868, len: 130, g: 71.372, pin: [-2.63, 70.68] },
 
-  // Placa lateral trapezoidal fixa na parede (z, y): carrega o disco/eixo da bandeja.
-  plate: { x: 198, t: 2, pts: [[172, 626], [172, 806], [56, 700], [56, 626]] },
+  // Bielas chatas (largura, espessura, sobra nas pontas; x do centro de cada uma)
+  arm: { w: 9, t: 3, over: 7, x1: 192.5, x2: 196.5 },
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira

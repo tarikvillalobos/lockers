@@ -370,8 +370,8 @@ function updateStatus() {
   else set(ui.hopper, ha >= max - 0.1 ? `Aberto ${max}°` : `Aberto ${ha.toFixed(0)}°`, 'on');
 
   const tt = locker.trayTilt;
-  if (ha < 0.3) set(ui.baffle, `Bandeja inclinada ${tt.toFixed(0)}°`, 'ok');
-  else if (tt > 0.5) set(ui.baffle, 'Bandeja subindo…', 'warn');
+  if (ha < 0.3) set(ui.baffle, `Bandeja girada ${tt.toFixed(0)}°`, 'ok');
+  else if (tt > 0.5) set(ui.baffle, 'Bandeja girando…', 'warn');
   else set(ui.baffle, 'Bandeja vedando', 'on');
 
   for (const [w, el] of [

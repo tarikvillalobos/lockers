@@ -261,14 +261,11 @@ export class Parcels {
     const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
     const target = new THREE.Vector3(item.x, item.base + item.h / 2, item.z);
     // 1) escorrega pela bandeja inclinada até a borda de trás; 2) cai até o ponto de apoio
-    const tr = SPEC.tray;
-    const ta = -tr.tilt * DEG;
-    const back = -tr.length - item.d * 0.15;
-    const w = new THREE.Vector3(
-      p0.x,
-      tr.topY + (item.h / 2) * Math.cos(ta) - back * Math.sin(ta),
-      tr.pivotZ + (item.h / 2) * Math.sin(ta) + back * Math.cos(ta)
-    );
+    // com a bandeja girada ~55°, o fundo do piso fica bem inclinado: de lá a caixa cai
+    const phi = 55;
+    const ta = -phi * DEG;
+    const back = -SPEC.tray.length - item.d * 0.15;
+    const w = this.locker.trayPoint(new THREE.Vector3(p0.x, item.h / 2, back), phi);
     const qm = new THREE.Quaternion().setFromEuler(new THREE.Euler(ta * 1.2, yaw * 0.5, 0));
     const drop = Math.max(10, w.y - target.y);
     const T = THREE.MathUtils.clamp(Math.sqrt((2 * drop) / 9810) * 1.9, 0.3, 0.75);

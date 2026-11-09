@@ -68,6 +68,20 @@ function addSlats(group, mat, x0, x1, y0, y1, zFace, pitch) {
   }
 }
 
+// Ângulo `a` tal que a distância de A ao ponto O + R(a)·w vale L (raiz mais próxima de `guess`)
+function solveAngle(A, O, w, L, guess) {
+  const d = A.clone().sub(O);
+  const dl = d.length(),
+    wl = w.length();
+  const cs = THREE.MathUtils.clamp((dl * dl + wl * wl - L * L) / (2 * dl * wl), -1, 1);
+  const base = Math.atan2(d.y, d.x) - Math.atan2(w.y, w.x);
+  const off = Math.acos(cs);
+  const wrap = (x) => Math.atan2(Math.sin(x), Math.cos(x));
+  const c1 = wrap(base + off),
+    c2 = wrap(base - off);
+  return Math.abs(wrap(c1 - guess)) <= Math.abs(wrap(c2 - guess)) ? c1 : c2;
+}
+
 function approach(cur, target, dt, rate = 7, minSpeed = 30) {
   const diff = target - cur;
   if (Math.abs(diff) < 0.02) return target;
@@ -314,7 +328,7 @@ export class Locker {
   }
 
   _buildMechanism() {
-    const { D, hopper: hp, tray: tr, link: lk, plate: pl } = SPEC;
+    const { D, hopper: hp, tray: tr, arm, flap: fl } = SPEC;
     const m = this.m;
     const hz = D / 2;
     const mech = this._part('mech', [0, 0, 0]);
@@ -343,97 +357,81 @@ export class Locker {
     // reforço interno da porta
     body.add(box(m.front, -fw + 10, fw - 10, 20, 34, -14, -2));
 
-    // eixo da dobradiça + manivelas (giram com a porta) + suportes fixos estreitos
-    const ck = hp.crank;
+    // eixo da dobradiça + pinos onde a biela prende na porta + suportes fixos estreitos
     pivot.add(cylX(m.chrome, 4.5, -186, 186, 0, 0, 16));
+    const p0 = this.hopperPivotPos;
     for (const side of [-1, 1]) {
-      const crank = strip(m.galv, 3, 12, [0, 0], [ck.y, ck.z]);
-      crank.position.x = side * (ck.x + 1.5);
-      pivot.add(crank);
-      const pinIn = lk.x - lk.t / 2 - 1.5; // o pino atravessa a biela
-      pivot.add(cylX(m.chrome, 4, side < 0 ? -ck.x - 4 : pinIn, side < 0 ? -pinIn : ck.x + 4, ck.y, ck.z, 12));
-      pivot.add(cylX(m.chrome, 2, side < 0 ? -199 : 186, side < 0 ? -186 : 199, 0, 0, 10)); // eixo até a manivela
-      const p0 = this.hopperPivotPos;
-      mech.add(box(m.galv, side < 0 ? -203 : 199, side < 0 ? -199 : 203, p0.y - 18, p0.y + 18, p0.x - 16, p0.x + 2));
+      const sx = (a, b) => (side < 0 ? [-b, -a] : [a, b]);
+      pivot.add(cylX(m.chrome, 2, ...sx(186, 199), 0, 0, 10));
+      pivot.add(cylX(m.chrome, 3.5, ...sx(182, arm.x1 + arm.t / 2 + 2), hp.pin.dy, hp.pin.z, 12));
+      mech.add(box(m.galv, ...sx(199, 203), p0.y - 18, p0.y + 18, p0.x - 16, p0.x + 2));
     }
 
-    // ---- Bandeja interna (profundidade toda) ----
-    const trayPivot = new THREE.Group();
-    trayPivot.position.set(0, tr.topY, tr.pivotZ);
-    mech.add(trayPivot);
-    this.tray = trayPivot;
-    trayPivot.add(box(m.mech, -tr.halfW, tr.halfW, -2, 0, -tr.length, 0));
-    // dobra de reforço na borda de trás (para baixo, não segura encomenda)
-    trayPivot.add(box(m.mech, -tr.halfW, tr.halfW, -14, -2, -tr.length, -tr.length + 2));
-    // dobradiça da bandeja (frente)
-    trayPivot.add(cylX(m.chrome, 4, -203, 203, -4, -2, 16));
-    // placas laterais trapezoidais (fixas na parede) com disco + parafuso no eixo da bandeja
+    // ---- Bandeja giratória: 2 placas + piso, gira num eixo fixo no meio da boca ----
+    const P = tr.pivot;
+    const trayRot = new THREE.Group();
+    trayRot.position.set(0, P.y, P.z);
+    mech.add(trayRot);
+    this.trayRot = trayRot;
+    // referencial das encomendas: origem na borda da frente do piso, +y para cima, −z para o fundo
+    const trayFrame = new THREE.Group();
+    trayFrame.position.set(0, tr.floorY, tr.front);
+    trayRot.add(trayFrame);
+    this.tray = trayFrame;
+
+    trayRot.add(box(m.mech, -tr.halfW, tr.halfW, tr.floorY - 2, tr.floorY, tr.back, tr.front)); // piso
     const plShape = new THREE.Shape();
-    pl.pts.forEach(([z, y], i) => (i ? plShape.lineTo(-z, y) : plShape.moveTo(-z, y)));
-    const plGeo = new THREE.ExtrudeGeometry(plShape, { depth: pl.t, bevelEnabled: false });
-    plGeo.rotateY(Math.PI / 2); // (u = −z, v = y) → z, y; extrusão em X
-    const hubY = tr.topY - 4,
-      hubZ = tr.pivotZ - 2;
+    tr.plate.forEach(([z, y], i) => (i ? plShape.lineTo(-z, y) : plShape.moveTo(-z, y)));
+    const plGeo = new THREE.ExtrudeGeometry(plShape, { depth: 2, bevelEnabled: false });
+    plGeo.rotateY(Math.PI / 2); // (u = −z, v = y) → (z, y), extrusão em X
     for (const side of [-1, 1]) {
-      const rng = (a, b) => (side < 0 ? [-b, -a] : [a, b]);
+      const sx = (a, b) => (side < 0 ? [-b, -a] : [a, b]);
       const plate = mesh(plGeo, m.mech);
-      plate.position.x = side < 0 ? -pl.x - pl.t : pl.x;
-      mech.add(plate);
-      const x0 = pl.x + pl.t;
-      mech.add(cylX(m.chrome, 11, ...rng(x0, x0 + 2), hubY, hubZ, 28));
-      mech.add(cylX(m.dark, 4.5, ...rng(x0 + 2, 203), hubY, hubZ, 12));
-    }
-    // laterais da bandeja (chapas triangulares) + pino do amortecedor
-    const cs = new THREE.Shape();
-    const cp = tr.cheek.pts;
-    cs.moveTo(cp[0][0], cp[0][1]);
-    for (let i = 1; i < cp.length; i++) cs.lineTo(cp[i][0], cp[i][1]);
-    cs.lineTo(cp[0][0], cp[0][1]);
-    const cheekGeo = new THREE.ExtrudeGeometry(cs, { depth: 2, bevelEnabled: false });
-    cheekGeo.rotateY(Math.PI / 2); // (u, v) → (z = −u, y = v), extrusão em X
-    const [pu, pv] = tr.cheek.pin;
-    for (const side of [-1, 1]) {
-      const c = mesh(cheekGeo, m.mech);
-      c.position.x = side < 0 ? -tr.cheek.x - 2 : tr.cheek.x;
-      trayPivot.add(c);
-      const pinOut = lk.x + lk.t / 2 + 1.5; // o pino passa pelo rasgo da biela
-      trayPivot.add(cylX(m.chrome, 4, side < 0 ? -pinOut : tr.cheek.x, side < 0 ? -tr.cheek.x : pinOut, pv, -pu, 12));
+      plate.position.x = side < 0 ? -tr.cheek.x - 2 : tr.cheek.x;
+      trayRot.add(plate);
+      // pino da biela da porta e pino da biela da aba (ambos presos na placa)
+      trayRot.add(cylX(m.chrome, 3.5, ...sx(tr.cheek.x, arm.x1 + arm.t / 2 + 2), tr.pin[1], tr.pin[0], 12));
+      trayRot.add(cylX(m.chrome, 3.5, ...sx(tr.cheek.x, arm.x2 + arm.t / 2 + 2), fl.pin[1], fl.pin[0], 12));
+      // eixo fixo: parafuso atravessando a placa + bloco quadrado na parede
+      mech.add(cylX(m.dark, 3.5, ...sx(186, 203), P.y, P.z, 12));
+      mech.add(box(m.galv, ...sx(tr.cheek.x + 2, 200), P.y - 8, P.y + 8, P.z - 8, P.z + 8));
     }
 
-    // batente fixo no fundo: cobre a ponta de trás da bandeja quando ela está horizontal
+    // batente fixo no fundo: cobre a ponta de trás do piso quando ele está horizontal
     const ix = SPEC.W / 2 - SPEC.sheet;
     this.parts.back.add(box(m.mech, -ix, ix, tr.topY + 1, tr.topY + 3, -hz + 4, -hz + 4 + tr.rearStop));
 
-    // ---- Bielas chatas com rasgo (manivela da porta → pino da lateral da bandeja) ----
-    const { min: lMin, max: lMax } = this._linkRange();
-    const barLen = lMax + lk.over * 2;
-    this.links = [];
-    for (const side of [-1, 1]) {
-      const g = new THREE.Group();
-      const bar = mesh(new THREE.BoxGeometry(lk.t, barLen, lk.w), m.mech);
-      bar.position.y = barLen / 2 - lk.over;
-      const slot = mesh(new THREE.BoxGeometry(lk.t + 0.6, lMax - lMin + lk.slotPad * 2, 4.5), m.dark);
-      slot.position.y = (lMin + lMax) / 2;
-      slot.userData.noEdges = true;
-      g.add(bar, slot);
-      g.position.x = side * lk.x;
-      mech.add(g);
-      this.links.push(g);
-    }
-    this.trayTilt = tr.tilt;
-
-    // ---- Aba interna superior (Hamilton): presa atrás da travessa de cima; com a porta
-    // aberta fica rente ao teto, ao fechar desce junto com a bandeja e guia a encomenda ----
-    const ur = SPEC.upperRail;
-    const tf = SPEC.topFlap;
+    // ---- Aba superior (viseira) + bielas chatas ----
     const flap = new THREE.Group();
-    flap.position.set(0, ur.y0 - 4, hz - 22);
+    flap.position.set(0, fl.y, fl.z);
     mech.add(flap);
-    flap.add(box(m.mech, -185, 185, -2, 0, -tf.len, 0));
+    flap.add(box(m.mech, -185, 185, -2, 0, 0, fl.len));
     flap.add(cylX(m.chrome, 3.5, -186, 186, -1, 0, 12));
+    for (const side of [-1, 1]) {
+      flap.add(cylX(m.chrome, 3, ...(side < 0 ? [-(arm.x2 + arm.t / 2 + 2), -183] : [183, arm.x2 + arm.t / 2 + 2]), -1, fl.g, 12));
+    }
     this.topFlap = flap;
 
+    // comprimentos das bielas (fixos): medidos com a porta aberta (90°), placa e aba em 0°
+    const pivotV = new THREE.Vector2(P.z, P.y);
+    this.arm1Len = this._doorPin(Math.PI / 2).distanceTo(pivotV.clone().add(new THREE.Vector2(tr.pin[0], tr.pin[1])));
+    this.arm2Len = pivotV.clone().add(new THREE.Vector2(fl.pin[0], fl.pin[1])).distanceTo(new THREE.Vector2(fl.z + fl.g, fl.y));
+    const makeArm = (x, len) => {
+      const g = new THREE.Group();
+      const bar = mesh(new THREE.BoxGeometry(arm.t, len + arm.over * 2, arm.w), m.mech);
+      bar.position.y = len / 2;
+      g.add(bar);
+      g.position.x = x;
+      mech.add(g);
+      return g;
+    };
+    this.arms1 = [-1, 1].map((s) => makeArm(s * arm.x1, this.arm1Len));
+    this.arms2 = [-1, 1].map((s) => makeArm(s * arm.x2, this.arm2Len));
+    this.trayTilt = tr.closeAngle;
+
+
     // ---- Prateleira de cartas (= teto da câmara de encomendas) ----
+    const ur = SPEC.upperRail;
     const ls = SPEC.lettersShelf;
     const iw = SPEC.W / 2 - SPEC.sheet;
     mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, ls.z0, ls.z1));
@@ -454,66 +452,60 @@ export class Locker {
     }, ease.linear).then(() => (this.letterFlap.rotation.x = 0));
   }
 
-  // Ângulo da bandeja em função da porta: horizontal a partir de `sealBy` graus
-  _trayTiltFor(doorDeg) {
-    const { tilt, sealBy } = SPEC.tray;
-    const s = THREE.MathUtils.clamp(doorDeg / sealBy, 0, 1);
-    return tilt * (1 - s * s * (3 - 2 * s));
+  // Pino da biela na porta (z, y) no referencial do locker, com a porta aberta em `th` rad
+  _doorPin(th) {
+    const { pin } = SPEC.hopper;
+    const p0 = this.hopperPivotPos;
+    return new THREE.Vector2(
+      p0.x + pin.dy * Math.sin(th) + pin.z * Math.cos(th),
+      p0.y + pin.dy * Math.cos(th) - pin.z * Math.sin(th)
+    );
+  }
+
+  // Posição (referencial do locker) de um ponto do referencial da bandeja, com a bandeja girada `phiDeg`
+  trayPoint(local, phiDeg) {
+    const tr = SPEC.tray;
+    const a = -phiDeg * DEG;
+    const y = tr.floorY + local.y;
+    const z = tr.front + local.z;
+    return new THREE.Vector3(local.x, tr.pivot.y + y * Math.cos(a) - z * Math.sin(a), tr.pivot.z + y * Math.sin(a) + z * Math.cos(a));
   }
 
   _updateMechanism() {
     const th = this.hopper.angle * DEG;
+    const { tray: tr, flap: fl } = SPEC;
     this.hopperPivot.rotation.x = th;
-    this.trayTilt = this._trayTiltFor(this.hopper.angle);
-    const ta = -this.trayTilt * DEG;
-    this.tray.rotation.x = ta;
-    // aba superior acompanha a bandeja (horizontal com a porta aberta)
-    this.topFlap.rotation.x = -(SPEC.topFlap.down * this.trayTilt) / SPEC.tray.tilt * DEG;
 
-    // biela: do pino da manivela (A) em direção ao pino da bandeja (B); o rasgo absorve a folga
-    const { A, B } = this._linkEnds(this.hopper.angle, this.trayTilt);
-    const dir = B.clone().sub(A);
-    const len = dir.length();
-    dir.divideScalar(len);
-    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, dir.y, dir.x));
-    for (const g of this.links) {
-      g.quaternion.copy(q);
-      g.position.y = A.y;
-      g.position.z = A.x;
-    }
-    this.linkLength = len;
-  }
+    // biela 1: pino da porta → pino da placa (gira a bandeja em torno do eixo fixo)
+    const D = this._doorPin(th);
+    const P = new THREE.Vector2(tr.pivot.z, tr.pivot.y);
+    const phi = solveAngle(D, P, new THREE.Vector2(tr.pin[0], tr.pin[1]), this.arm1Len, (SPEC.hopper.maxAngle * DEG - th) * (tr.closeAngle / SPEC.hopper.maxAngle));
+    this.trayRot.rotation.x = -phi;
+    this.trayTilt = phi / DEG;
+    const rot = (v, a) => new THREE.Vector2(v.x * Math.cos(a) - v.y * Math.sin(a), v.x * Math.sin(a) + v.y * Math.cos(a));
+    const Q = P.clone().add(rot(new THREE.Vector2(tr.pin[0], tr.pin[1]), phi));
 
-  // Pinos da biela (z, y) no referencial do locker: A na manivela da porta, B na bandeja
-  _linkEnds(doorDeg, tiltDeg) {
-    const th = doorDeg * DEG;
-    const ta = -tiltDeg * DEG;
-    const { crank: ck } = SPEC.hopper;
-    const p0 = this.hopperPivotPos;
-    const A = new THREE.Vector2(
-      p0.x + ck.y * Math.sin(th) + ck.z * Math.cos(th),
-      p0.y + ck.y * Math.cos(th) - ck.z * Math.sin(th)
-    );
-    const tr = SPEC.tray;
-    const [pu, pv] = tr.cheek.pin;
-    const B = new THREE.Vector2(
-      tr.pivotZ + pv * Math.sin(ta) - pu * Math.cos(ta),
-      tr.topY + pv * Math.cos(ta) + pu * Math.sin(ta)
-    );
-    return { A, B };
-  }
+    // biela 2: pino da placa → pino da aba (a aba desce até a vertical)
+    const Hf = new THREE.Vector2(fl.z, fl.y);
+    const R = P.clone().add(rot(new THREE.Vector2(fl.pin[0], fl.pin[1]), phi));
+    const a2 = solveAngle(R, Hf, new THREE.Vector2(fl.g, 0), this.arm2Len, -phi);
+    const psi = -a2;
+    this.topFlap.rotation.x = psi;
+    const G = Hf.clone().add(rot(new THREE.Vector2(fl.g, 0), a2));
+    this.flapAngle = psi / DEG;
 
-  // Menor e maior distância A–B ao longo do curso da porta (define o comprimento do rasgo)
-  _linkRange() {
-    let min = Infinity,
-      max = 0;
-    for (let d = 0; d <= SPEC.hopper.maxAngle; d++) {
-      const { A, B } = this._linkEnds(d, this._trayTiltFor(d));
-      const l = A.distanceTo(B);
-      min = Math.min(min, l);
-      max = Math.max(max, l);
-    }
-    return { min, max };
+    const q = new THREE.Quaternion();
+    const place = (groups, from, to) => {
+      const dir = to.clone().sub(from).normalize();
+      q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, dir.y, dir.x));
+      for (const g of groups) {
+        g.quaternion.copy(q);
+        g.position.y = from.y;
+        g.position.z = from.x;
+      }
+    };
+    place(this.arms1, D, Q);
+    place(this.arms2, R, G);
   }
 
   _applyExplode(v) {
