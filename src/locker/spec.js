@@ -3,11 +3,13 @@
 // Fonte: desenhos SolidWorks (410 × 380 × 1020 mm) + vistas laterais do mecanismo.
 
 // Layout inspirado no Milkcan Hamilton (de cima para baixo, na frente):
-//   tampo → fenda de cartas → painel "Cartas" → rebaixo de pegada (3 batentes)
-//   → porta de encomendas ripada (abre para baixo, vira prateleira) → frente ripada.
-// Atrás: porta ripada igual à de baixo da frente (mesmo vão, espelhada).
-const HOPPER_Y = 638; // quina inferior-frontal da porta de encomendas
+//   tampo → módulo eletrônico (5 cm) → 3 batentes → porta de encomendas ripada
+//   (abre para baixo, vira prateleira) → frente ripada → porta ripada de baixo.
+// Atrás: porta ripada igual à de baixo da frente (espelhada) e, em cima, a tampa com chave
+// do compartimento eletrônico.
+const HOPPER_Y = 716; // quina inferior-frontal da porta de encomendas (logo abaixo do módulo eletrônico)
 const HOPPER_FACE_H = 220;
+const DY = HOPPER_Y - 638; // deslocamento do mecanismo em relação ao projeto anterior (cartas ocupavam o topo)
 
 export const SPEC = {
   W: 410,
@@ -34,10 +36,10 @@ export const SPEC = {
 
   lowerRail: { y0: 517, y1: HOPPER_Y - 6 },
   upperRail: { y0: HOPPER_Y + HOPPER_FACE_H + 6, y1: HOPPER_Y + HOPPER_FACE_H + 14 }, // 3 batentes
-  niche: { y1: 924, backZ: 130, ceilBackY: 905 }, // rebaixo de pegada (teto inclinado vira calha das cartas)
-  lettersPanel: { y0: 924, y1: 984 },
-  slot: { y0: 984, y1: 1000 }, // fenda de cartas logo abaixo do tampo
-  lettersShelf: { z0: -168, z1: 130 }, // prateleira de cartas = teto da câmara de encomendas
+
+  // Módulo eletrônico no topo (altura 50 mm, logo abaixo do tampo). Acesso por trás, por uma tampa
+  // com fechadura de chave (mesmo vão das portas: 368 mm). A chapa de baixo (y0) é o teto da boca.
+  elec: { y0: 950, y1: 1000, ceil: { z0: -168, z1: 186 } },
 
   // Porta de depósito (basculante): dobradiça embaixo, abre para fora até ficar na
   // horizontal (vira prateleira para apoiar a encomenda).
@@ -56,32 +58,32 @@ export const SPEC = {
   // 90°: o piso vira parede vertical logo atrás da porta e a encomenda escorrega e cai.
   // Os pinos foram resolvidos numericamente para a placa ir de 0° a 90° quase linear.
   tray: {
-    pivot: { z: 60, y: 735 }, // eixo fixo (z, y)
+    pivot: { z: 60, y: 735 + DY }, // eixo fixo (z, y)
     plate: [[123, -95], [123, 55], [83, 95], [-140, 95], [-210, 40], [-210, -95]], // contorno da placa (z, y) rel. ao eixo
     front: 123, // borda da frente do piso (rel. ao eixo): com a bandeja horizontal fica rente à dobradiça da porta (z = 183)
     back: -210, // borda de trás do piso
     floorY: -93, // face de cima do piso (rel. ao eixo)
     halfW: 178, // tudo que gira fica dentro do vão livre (±186) entre os montantes
     length: 333, // frente → fundo do piso
-    topY: 642, // face de cima do piso com a bandeja na horizontal (= batente traseiro)
+    topY: 642 + DY, // face de cima do piso com a bandeja na horizontal (= batente traseiro)
     closeAngle: 90, // giro com a porta fechada (graus)
     pin: [70.165, 33.198], // pino da biela da porta, no referencial da placa (z, y)
     cheek: { x: 178 }, // face interna das placas (placa: 178–180)
     rearStop: 16, // batente na porta traseira que cobre a ponta do piso
   },
 
-  // Aba superior (viseira): articulada logo abaixo da prateleira de cartas e acionada por uma
+  // Aba superior (viseira): articulada logo abaixo do teto da boca e acionada por uma
   // segunda biela que sai de um pino da placa. Com a porta aberta fica deitada (por baixo do batente
   // superior); ao fechar desce até a vertical. Comprimento 190 mm: a ponta passa a 16 mm do piso da
   // bandeja (acima de ~195 mm ela atravessaria o piso) e vai de perto da tampa de baixo.
-  flap: { z: 23.49, y: 858, len: 190, g: 71.372, pin: [-2.63, 70.68] },
+  flap: { z: 23.49, y: 858 + DY, len: 190, g: 71.372, pin: [-2.63, 70.68] },
 
   // Bielas chatas (largura, espessura, sobra nas pontas; x do centro de cada uma)
   arm: { w: 9, t: 3, over: 7, x1: 182.5, x2: 175.5 }, // biela 1 por fora da placa, biela 2 por dentro
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira
-  bay: { x0: -199, x1: 199, z0: -166, z1: 150, floor: 22, maxTop: 420 },
+  bay: { x0: -199, x1: 199, z0: -166, z1: 150, floor: 22, maxTop: 420 + DY },
 };
 
 export const DEG = Math.PI / 180;

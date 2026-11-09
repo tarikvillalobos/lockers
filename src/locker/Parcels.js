@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SPEC, DEG } from './spec.js';
-import { createParcelMaterials, createLetterMaterials } from './textures.js';
+import { createParcelMaterials } from './textures.js';
 import { tween, wait, ease } from '../core/tween.js';
 import { sfx } from '../core/sound.js';
 
@@ -27,85 +27,9 @@ export class Parcels {
     this.group.name = 'Encomendas';
     locker.root.add(this.group);
     this.items = []; // encomendas no compartimento
-    this.letters = []; // cartas na prateleira de cima
     this.inHopper = null;
     this.busy = false;
     this.onChange = () => {};
-  }
-
-  get letterCount() {
-    return this.letters.length;
-  }
-
-  // ---------- Cartas ----------
-  async depositLetter() {
-    if (this.letters.length >= 40) return { ok: false, msg: 'Prateleira de cartas cheia' };
-    const geo = new THREE.BoxGeometry(220, 3, 110);
-    const env = new THREE.Mesh(geo, createLetterMaterials());
-    env.castShadow = env.receiveShadow = true;
-    const x = (Math.random() - 0.5) * 220;
-    const sl = SPEC.slot;
-    const yIn = (sl.y0 + sl.y1) / 2;
-    env.position.set(x, yIn, SPEC.D / 2 + 140);
-    this.group.add(env);
-    const letter = { mesh: env };
-    this.letters.push(letter);
-    env.userData.letter = letter;
-    const shelfY = SPEC.upperRail.y1 + 2;
-    const target = new THREE.Vector3(
-      THREE.MathUtils.clamp(x + (Math.random() - 0.5) * 80, -140, 140),
-      shelfY + 1.5 + (this.letters.length - 1) * 3.2,
-      -150 + Math.random() * 220
-    );
-    const yaw = (Math.random() - 0.5) * 0.6;
-    this.onChange();
-    // 1) entra pela fenda
-    const p0 = env.position.clone();
-    const p1 = new THREE.Vector3(x, yIn, SPEC.D / 2 - 20);
-    this.locker.bumpLetterFlap();
-    await tween(0.45, (e) => env.position.lerpVectors(p0, p1, e), ease.inOutCubic);
-    // 2) escorrega pela calha (teto do nicho) e cai na prateleira
-    const n = SPEC.niche;
-    const p2 = new THREE.Vector3(x, n.ceilBackY + 6, n.backZ - 30);
-    const q0 = env.quaternion.clone();
-    const qm = new THREE.Quaternion().setFromEuler(new THREE.Euler(-18 * DEG, yaw * 0.5, 0));
-    await tween(0.3, (e) => {
-      env.position.lerpVectors(p1, p2, e);
-      env.quaternion.slerpQuaternions(q0, qm, e);
-    }, ease.inQuad);
-    const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0));
-    await tween(0.35, (_, k) => {
-      env.position.x = THREE.MathUtils.lerp(p2.x, target.x, ease.outQuad(k));
-      env.position.z = THREE.MathUtils.lerp(p2.z, target.z, ease.outQuad(k));
-      env.position.y = p2.y + (target.y - p2.y) * k * k;
-      env.quaternion.slerpQuaternions(qm, q1, ease.outCubic(k));
-    }, ease.linear);
-    sfx.click();
-    env.userData.action = 'letter';
-    return { ok: true, msg: 'Carta depositada' };
-  }
-
-  async retrieveLetter(letter) {
-    if (this.locker.doors.back.angle < 60) {
-      return { ok: false, msg: 'Abra a porta traseira para pegar as cartas' };
-    }
-    if (letter.leaving) return { ok: false };
-    letter.leaving = true;
-    this.letters = this.letters.filter((l) => l !== letter);
-    const env = letter.mesh;
-    env.userData.action = null;
-    const p0 = env.position.clone();
-    const out = new THREE.Vector3(p0.x * 0.5, p0.y + 40, -620);
-    await tween(0.6, (e) => {
-      env.position.lerpVectors(p0, out, e);
-      env.scale.setScalar(1 - e * 0.5);
-    }, ease.inOutCubic);
-    this._dispose(env);
-    // reempilha as que ficaram
-    const shelfY = SPEC.upperRail.y1 + 2;
-    this.letters.forEach((l, i) => (l.mesh.position.y = shelfY + 1.5 + i * 3.2));
-    this.onChange();
-    return { ok: true, msg: 'Carta retirada' };
   }
 
   get count() {
@@ -320,24 +244,13 @@ export class Parcels {
     if (!this.locker.anyDoorOpen(60)) {
       return { ok: false, msg: 'Abra uma das portas para retirar as encomendas' };
     }
-    const backOpen = this.locker.doors.back.angle >= 60;
-    const letters = backOpen ? [...this.letters] : [];
-    if (!this.items.length && !letters.length) {
-      return { ok: false, msg: this.letters.length ? 'As cartas só saem pela porta traseira' : 'Nenhuma encomenda no locker' };
-    }
+    if (!this.items.length) return { ok: false, msg: 'Nenhuma encomenda no locker' };
     const sorted = [...this.items].sort((a, b) => b.base - a.base);
-    for (const l of letters.reverse()) {
-      this.retrieveLetter(l);
-      await wait(0.08);
-    }
     for (const it of sorted) {
       this.retrieve(it);
       await wait(0.18);
     }
-    const parts = [];
-    if (sorted.length) parts.push(`${sorted.length} encomenda(s)`);
-    if (letters.length) parts.push(`${letters.length} carta(s)`);
-    return { ok: true, msg: `Retirado: ${parts.join(' e ')}` };
+    return { ok: true, msg: `Retirado: ${sorted.length} encomenda(s)` };
   }
 
   // Reacomoda caixas que ficaram sem apoio
@@ -369,8 +282,6 @@ export class Parcels {
   clear() {
     for (const it of this.items) this._dispose(it.mesh);
     this.items = [];
-    for (const l of this.letters) this._dispose(l.mesh);
-    this.letters = [];
     if (this.inHopper) this._dispose(this.inHopper);
     this.inHopper = null;
     this.onChange();

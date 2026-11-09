@@ -28,6 +28,12 @@ function cylX(mat, r, x0, x1, y, z, seg = 20) {
   return m;
 }
 
+function cylY(mat, r, y0, y1, x, z, seg = 12) {
+  const m = mesh(new THREE.CylinderGeometry(r, r, y1 - y0, seg), mat);
+  m.position.set(x, (y0 + y1) / 2, z);
+  return m;
+}
+
 function cylZ(mat, r, z0, z1, x, y, seg = 32) {
   const g = new THREE.CylinderGeometry(r, r, z1 - z0, seg);
   g.rotateX(Math.PI / 2);
@@ -89,6 +95,8 @@ function approach(cur, target, dt, rate = 7, minSpeed = 30) {
   return Math.abs(diff) <= step ? target : cur + Math.sign(diff) * step;
 }
 
+const DOOR_NAMES = { front: 'Porta frontal', back: 'Porta traseira', elec: 'Tampa da eletrônica' };
+
 // ---------- Locker ----------
 export class Locker {
   constructor(materials) {
@@ -102,13 +110,14 @@ export class Locker {
     this.decals = [];
 
     this.hopper = { angle: 0, target: 0 };
-    this.doors = {}; // front / back: { angle, target, shake, locked, busy, ... }
+    this.doors = {}; // front / back / elec: { angle, target, shake, locked, busy, ... }
     this.explode = { v: 0, target: 0 };
 
     this._buildBody();
     this._buildFrontFrame();
     this._buildDoor('front', 0);
     this._buildDoor('back', Math.PI); // mesma porta, espelhada no fundo
+    this._buildDoor('elec', Math.PI); // tampa com chave do módulo eletrônico (atrás, no topo)
     this._buildMechanism();
     this._applyExplode(0);
     this._updateMechanism();
@@ -184,44 +193,37 @@ export class Locker {
       else this.sidePanelL = panel;
     }
 
-    // Fundo: faixa acima da porta traseira + retornos (batente da came)
+    // Fundo: faixa entre a porta traseira e a tampa do módulo eletrônico + retornos (batente da came)
     const back = this._part('back', [0, 0, -260]);
     const bd = SPEC.backDoor;
+    const el = SPEC.elec;
     const fx = ix - stile.w; // borda interna dos montantes (187)
     const topY = bd.y0 + bd.h + 3;
-    const backStrip = box(m.shell, -ix, ix, topY, yt, -hz + sheet, -hz + sheet * 2);
+    const skinTop = el.y0 - 3;
+    const backStrip = box(m.shell, -ix, ix, topY, skinTop, -hz + sheet, -hz + sheet * 2);
     backStrip.userData.shell = true;
     back.add(backStrip);
-    back.add(box(m.body, -fx, fx, topY, yt, -hz, -hz + sheet));
+    back.add(box(m.body, -fx, fx, topY, skinTop, -hz, -hz + sheet));
+    back.add(box(m.body, -fx, fx, skinTop - 2, skinTop, -hz + sheet, -hz + sheet + stile.ret)); // lábio sob a tampa
     for (const side of [-1, 1]) {
       const x0 = side < 0 ? -fx - sheet : fx;
       back.add(box(m.body, x0, x0 + sheet, yb, topY, -hz + sheet, -hz + sheet + stile.ret));
+      back.add(box(m.body, x0, x0 + sheet, el.y0, yt, -hz + sheet, -hz + sheet + stile.ret)); // batente da came da tampa
     }
   }
 
   _buildFrontFrame() {
-    const { W, D, sheet, stile, lowerRail: lr, upperRail: ur, niche, lettersPanel: lp, door } = SPEC;
+    const { W, D, sheet, stile, lowerRail: lr, upperRail: ur, elec, door } = SPEC;
     const hz = D / 2;
     const fx = W / 2 - sheet - stile.w; // borda interna dos montantes (187)
     const m = this.m;
     const g = this._part('frame', [0, 0, 230]);
 
-    // Painel "Cartas" (abaixo da fenda de cartas)
-    g.add(box(m.front, -fx, fx, lp.y0, lp.y1, hz - sheet, hz));
-    g.add(box(m.front, -fx, fx, lp.y1 - sheet, lp.y1, hz - 40, hz - sheet)); // dobra = lábio da fenda
-    this._decal(g, 'Cartas', 110, 28, fx - 70, (lp.y0 + lp.y1) / 2 + 4, hz + 0.3, { w: 512, h: 128, size: 76, align: 'right', weight: 400, spacing: 2 });
+    // Painel frontal liso do módulo eletrônico (50 mm, logo abaixo do tampo)
+    g.add(box(m.front, -fx, fx, elec.y0, elec.y1, hz - sheet, hz));
 
-    // Rebaixo de pegada (nicho aberto): fundo, teto inclinado (calha das cartas) e laterais
-    g.add(box(m.body, -fx, fx, ur.y1, niche.ceilBackY + 2, niche.backZ, niche.backZ + sheet)); // fundo
-    g.add(strip(m.body, fx * 2, 2, [lp.y0 - 1, hz - sheet], [niche.ceilBackY, niche.backZ])); // teto/calha
-    for (const side of [-1, 1]) {
-      const x0 = side < 0 ? -fx : fx - sheet;
-      g.add(box(m.body, x0, x0 + sheet, ur.y1, lp.y0, niche.backZ, hz - sheet));
-    }
-
-    // Travessa superior (piso do nicho) com 3 batentes pretos
+    // Travessa superior (teto da boca) com 3 batentes pretos
     g.add(box(m.body, -fx, fx, ur.y0, ur.y1, hz - sheet, hz));
-    g.add(box(m.body, -fx, fx, ur.y1 - sheet, ur.y1, niche.backZ, hz - sheet));
     g.add(box(m.body, -fx, fx, ur.y0, ur.y0 + sheet, hz - 30, hz - sheet));
     const bumperGeo = new THREE.SphereGeometry(6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2);
     bumperGeo.rotateX(Math.PI / 2);
@@ -241,15 +243,19 @@ export class Locker {
     g.add(box(m.rubber, -fx + 2, fx - 2, lr.y0 - 3, lr.y0, hz - 14, hz - 6));
   }
 
-  // Porta com fechadura. which = 'front' | 'back'; a traseira é a frontal girada 180° em Y,
+  // Porta com fechadura. which = 'front' | 'back' | 'elec'; as de trás são a frontal girada 180° em Y,
   // então a dobradiça fica à direita e a fechadura à esquerda de quem olha por trás.
   _buildDoor(which, rotY) {
-    const { D, door, backDoor } = SPEC;
+    const { D, door, backDoor, elec } = SPEC;
     const m = this.m;
     const hz = D / 2;
-    const front = which === 'front';
-    const y0 = front ? door.y0 : backDoor.y0;
-    const part = this._part(front ? 'door' : 'doorBack', [0, 0, front ? 440 : -440]);
+    const cfg = {
+      front: { y0: door.y0, h: door.h, lockY: door.lock.y, slats: true, part: 'door', off: 440 },
+      back: { y0: backDoor.y0, h: backDoor.h, lockY: backDoor.lockY, slats: true, part: 'doorBack', off: -440 },
+      elec: { y0: elec.y0, h: elec.y1 - elec.y0, lockY: (elec.y1 - elec.y0) / 2, slats: false, part: 'doorElec', off: -440 },
+    }[which];
+    const y0 = cfg.y0;
+    const part = this._part(cfg.part, [0, 0, cfg.off]);
     part.rotation.y = rotY;
     const ds = { which, angle: 0, target: 0, shake: 0, locked: true, busy: false };
     this.doors[which] = ds;
@@ -263,7 +269,7 @@ export class Locker {
     body.userData.door = which;
     pivot.add(body);
     const w = door.w,
-      h = front ? door.h : backDoor.h,
+      h = cfg.h,
       d = door.depth;
     // face + retornos (chapa dobrada)
     body.add(box(m.front, -w, 0, 0, h, -2, 0));
@@ -275,12 +281,12 @@ export class Locker {
     for (const cx of [-205, -163]) {
       body.add(box(m.front, cx - 11, cx + 11, 14, h - 14, -14, -2));
     }
-    // frente ripada (as duas portas se confundem com a fachada)
-    addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
+    // frente ripada (as portas de baixo se confundem com a fachada); a tampa da eletrônica é lisa
+    if (cfg.slats) addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
     // Fechadura tambor + came
     const L = door.lock;
     const lock = new THREE.Group();
-    lock.position.set(L.x, front ? L.y : backDoor.lockY, 5);
+    lock.position.set(L.x, cfg.lockY, 5);
     lock.userData.action = 'lock';
     lock.userData.door = which;
     body.add(lock);
@@ -399,7 +405,7 @@ export class Locker {
     }
     this.topFlap = flap;
     for (const side of [-1, 1]) {
-      // suportes da dobradiça da aba, presos na face de baixo da prateleira de cartas
+      // suportes da dobradiça da aba, presos na face de baixo do teto da boca
       mech.add(box(m.galv, ...(side < 0 ? [-170, -168] : [168, 170]), fl.y - 2, SPEC.upperRail.y1, fl.z - 8, fl.z + 8));
     }
 
@@ -421,26 +427,19 @@ export class Locker {
     this.trayTilt = tr.closeAngle;
 
 
-    // ---- Prateleira de cartas (= teto da câmara de encomendas) ----
+    // ---- Teto da boca = piso do módulo eletrônico (chapa de baixo do compartimento de 50 mm) ----
+    const el = SPEC.elec;
     const ur = SPEC.upperRail;
-    const ls = SPEC.lettersShelf;
     const iw = SPEC.W / 2 - SPEC.sheet;
-    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, ls.z0, ls.z1));
-
-    // ---- Aba da fenda de cartas (pendurada atrás da fenda) ----
-    const sl = SPEC.slot;
-    const lf = new THREE.Group();
-    lf.position.set(0, sl.y1 - 2, hz - 44); // atrás do lábio da fenda, sem atravessá-lo
-    mech.add(lf);
-    lf.add(box(m.mech, -180, 180, -sl.y1 + sl.y0 - 6, 0, -1, 1));
-    this.letterFlap = lf;
-  }
-
-  // Aba da fenda de cartas balança quando entra uma carta
-  bumpLetterFlap() {
-    return tween(0.7, (e, k) => {
-      this.letterFlap.rotation.x = -Math.sin(Math.PI * Math.min(1, k * 1.6)) * 55 * DEG * (1 - k * 0.3);
-    }, ease.linear).then(() => (this.letterFlap.rotation.x = 0));
+    mech.add(box(m.mech, -iw + 1, iw - 1, ur.y1, ur.y1 + 2, el.ceil.z0, el.ceil.z1));
+    // placa eletrônica (ilustrativa), sobre espaçadores, para aparecer no raio-X
+    mech.add(box(m.dark, -150, 150, el.y0 + 6, el.y0 + 8, -120, 120));
+    for (const [cx, cz, w, d] of [[-90, -30, 40, 28], [20, 30, 56, 36], [100, -50, 30, 30]]) {
+      mech.add(box(m.mech, cx - w / 2, cx + w / 2, el.y0 + 8, el.y0 + 18, cz - d / 2, cz + d / 2));
+    }
+    for (const [cx, cz] of [[-140, -110], [140, -110], [-140, 110], [140, 110]]) {
+      mech.add(cylY(m.galv, 3, el.y0 + 2, el.y0 + 6, cx, cz));
+    }
   }
 
   // Pino da biela na porta (z, y) no referencial do locker, com a porta aberta em `th` rad
@@ -519,8 +518,9 @@ export class Locker {
     return this.doors[which].target > 1;
   }
 
+  // Portas de acesso às encomendas (a tampa da eletrônica não dá acesso a elas)
   anyDoorOpen(minAngle = 60) {
-    return Object.values(this.doors).some((d) => d.angle >= minAngle);
+    return ['front', 'back'].some((k) => this.doors[k].angle >= minAngle);
   }
 
   setHopperAngle(deg, immediate = false) {
@@ -543,7 +543,7 @@ export class Locker {
 
   toggleDoor(which = 'front') {
     const d = this.doors[which];
-    const name = which === 'front' ? 'Porta frontal' : 'Porta traseira';
+    const name = DOOR_NAMES[which];
     if (this.doorOpen(which)) {
       d.target = 0;
       return { ok: true };
@@ -568,7 +568,7 @@ export class Locker {
     const d = this.doors[which];
     if (d.busy) return { ok: false };
     if (!d.locked && d.angle > 0.5) {
-      return { ok: false, msg: `Feche a porta ${which === 'front' ? 'frontal' : 'traseira'} antes de trancar` };
+      return { ok: false, msg: `Feche ${DOOR_NAMES[which].toLowerCase()} antes de trancar` };
     }
     d.busy = true;
     const locking = !d.locked;

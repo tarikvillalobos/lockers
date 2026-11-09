@@ -126,7 +126,7 @@ export function createContactShadow() {
   return new THREE.CanvasTexture(c);
 }
 
-// Texto gravado genérico (ex.: "Cartas", "Encomendas", "PUXE")
+// Texto gravado genérico (ex.: "Encomendas", "PUXE")
 export function createTextDecal(text, { w = 512, h = 128, size = 64, align = 'center', weight = 500, spacing = 4 } = {}) {
   const [c, ctx] = canvas(w, h);
   ctx.clearRect(0, 0, w, h);
@@ -138,26 +138,4 @@ export function createTextDecal(text, { w = 512, h = 128, size = 64, align = 'ce
   const x = align === 'right' ? w - 8 : align === 'left' ? 8 : w / 2;
   ctx.fillText(text, x, h / 2 + 2);
   return tex(c);
-}
-
-// Envelope de carta
-export function createLetterMaterials() {
-  const [c, ctx] = canvas(256, 128);
-  ctx.fillStyle = '#f4f1ea';
-  ctx.fillRect(0, 0, 256, 128);
-  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(128, 70);
-  ctx.lineTo(256, 0);
-  ctx.stroke();
-  ctx.fillStyle = '#c94f3d';
-  ctx.fillRect(206, 12, 34, 40); // selo
-  ctx.fillStyle = '#2a2e33';
-  ctx.fillRect(70, 84, 110, 5);
-  ctx.fillRect(70, 96, 80, 5);
-  const face = new THREE.MeshStandardMaterial({ map: tex(c), roughness: 0.9 });
-  const plain = new THREE.MeshStandardMaterial({ color: '#efebe2', roughness: 0.9 });
-  return [plain, plain, face, plain, plain, plain];
 }
