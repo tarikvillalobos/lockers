@@ -176,9 +176,10 @@ export class Parcels {
     const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'));
     const target = new THREE.Vector3(item.x, item.base + item.h / 2, item.z);
     // 1) escorrega pela rampa até a borda de trás; 2) cai até o ponto de apoio
-    // borda de trás da chapa de fundo do basculante (posição fechada)
-    const ez = SPEC.D / 2 - SPEC.hopper.floor.to[0];
-    const ey = SPEC.hopper.cornerY + SPEC.hopper.floor.to[1];
+    // ponta de trás da chapa de fundo do basculante (posição fechada)
+    const fe = SPEC.hopper.floor[SPEC.hopper.floor.length - 1];
+    const ez = SPEC.D / 2 - fe[0];
+    const ey = SPEC.hopper.cornerY + fe[1];
     const w = new THREE.Vector3(THREE.MathUtils.lerp(p0.x, target.x, 0.4), ey + 55, ez - 15);
     const qm = new THREE.Quaternion().slerpQuaternions(q0, q1, 0.45);
     const drop = Math.max(10, w.y - target.y);
@@ -216,7 +217,7 @@ export class Parcels {
     const p0 = p.position.clone();
     // sai pela porta que estiver aberta (frente tem prioridade)
     const outZ = this.locker.doors.front.angle >= 60 ? 620 : -620;
-    const out = new THREE.Vector3(p0.x * 0.4, 520, outZ);
+    const out = new THREE.Vector3(p0.x * 0.4, 360, outZ);
     sfx.click();
     await tween(0.75, (e, k) => {
       const lift = Math.sin(Math.min(1, k * 2) * Math.PI * 0.5) * 30;

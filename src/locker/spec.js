@@ -34,6 +34,13 @@ export const SPEC = {
     pivot: { y: 4, u: 4 }, // eixo da dobradiça relativo à quina (u = para trás)
     pin: { u: 128, v: 20 }, // pino da biela no triângulo lateral
     maxAngle: 75,
+    // Chapa de fundo do basculante (gira junto), dobrada: 1º trecho = aba original
+    // (~23°), depois dobra para baixo a 60°. Pontos em (u = para trás, v = para cima).
+    floor: [
+      [0, 25],
+      [60, 0],
+      [120, -104],
+    ],
     // contorno da lateral triangular em (u = para trás, v = para cima)
     profile: [
       [0, 0],
@@ -42,9 +49,6 @@ export const SPEC = {
       // curva arredondada até a base
       ['q', 160, 18, 128, 0],
     ],
-    // Chapa de fundo do basculante (gira junto): fechado, desce para trás como rampa
-    // até perto do pé do defletor; aberto, sobe e vira a parede de trás da bandeja.
-    floor: { from: [0, 25], to: [165, -46] },
   },
 
   // Defletor anti-furto pendurado no fundo, acionado pela biela.

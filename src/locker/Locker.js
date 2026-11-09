@@ -307,9 +307,16 @@ export class Locker {
     body.add(box(m.front, -fw, fw, 0, hp.faceH, -2, 0));
     // aba-puxador superior (dobrada a 45° para fora)
     body.add(strip(m.front, hp.faceW, 2, [hp.faceH, -1], [hp.faceH - 13, 12]));
-    // chapa de fundo (rampa quando fechado, parede de trás quando aberto)
+
+    // chapa de fundo dobrada (gira com o basculante)
     const fl = hp.floor;
-    body.add(strip(m.mech, hp.sideX * 2, 2, [fl.from[1], -2 - fl.from[0]], [fl.to[1], -fl.to[0]]));
+    for (let i = 0; i < fl.length - 1; i++) {
+      const [u0, v0] = fl[i];
+      const [u1, v1] = fl[i + 1];
+      body.add(strip(m.mech, hp.sideX * 2, 2, [v0, i === 0 ? -2 - u0 : -u0], [v1, -u1]));
+    }
+    // reforço arredondado na dobra
+    body.add(cylX(m.mech, 2.2, -hp.sideX, hp.sideX, fl[1][1], -fl[1][0], 12));
 
     // laterais triangulares
     const s = new THREE.Shape();
