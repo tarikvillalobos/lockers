@@ -277,12 +277,6 @@ export class Locker {
     }
     // frente ripada (as duas portas se confundem com a fachada)
     addSlats(body, m.front, -w, 0, 0, h, 0, door.slatH);
-    // dobradiças internas
-    for (const y of [60, h - 60]) {
-      body.add(box(m.galv, -26, -2, y - 20, y + 20, -8, -2));
-      body.add(cylX(m.galv, 4, -4, 4, y, -8, 16).rotateZ(Math.PI / 2));
-    }
-
     // Fechadura tambor + came
     const L = door.lock;
     const lock = new THREE.Group();
