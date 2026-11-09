@@ -52,11 +52,13 @@ export const SPEC = {
   },
 
   // Defletor anti-furto pendurado no fundo, acionado pela biela.
+  // Eixo 100 mm mais alto que no CAD e biela mais perto do eixo (giro de ~49°):
+  // aberto, o pé do defletor encosta a ~15 mm da chapa de fundo do basculante.
   baffle: {
-    pivot: { u: 362, v: 119 }, // relativo à quina do basculante
-    length: 262,
+    pivot: { u: 362, v: 219 }, // relativo à quina do basculante
+    length: 280,
     top: 10,
-    linkPoint: { dv: -213, du: -26 }, // ponto da biela em relação ao eixo (fechado)
+    linkPoint: { dv: -139, du: -17 }, // ponto da biela em relação ao eixo (fechado)
   },
 
   link: { x: 189, t: 3, w: 16 },
