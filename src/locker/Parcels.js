@@ -185,7 +185,7 @@ export class Parcels {
     const fe = SPEC.hopper.floor[SPEC.hopper.floor.length - 1];
     const ez = SPEC.D / 2 - fe[0];
     const ey = SPEC.hopper.cornerY + fe[1];
-    const w = new THREE.Vector3(THREE.MathUtils.lerp(p0.x, target.x, 0.4), ey + 55, ez - 15);
+    const w = new THREE.Vector3(THREE.MathUtils.lerp(p0.x, target.x, 0.4), ey - 20, ez - 25);
     const qm = new THREE.Quaternion().slerpQuaternions(q0, q1, 0.45);
     const drop = Math.max(10, w.y - target.y);
     const T = THREE.MathUtils.clamp(Math.sqrt((2 * drop) / 9810) * 1.9, 0.3, 0.75);

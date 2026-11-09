@@ -47,26 +47,6 @@ function strip(mat, width, thick, from, to) {
   return m;
 }
 
-// Barra com pontas arredondadas, comprimento ao longo de +Z local (espessura em X)
-function linkBar(mat, length, width, thick) {
-  const r = width / 2;
-  const s = new THREE.Shape();
-  s.moveTo(0, -r);
-  s.lineTo(length, -r);
-  s.absarc(length, 0, r, -Math.PI / 2, Math.PI / 2, false);
-  s.lineTo(0, r);
-  s.absarc(0, 0, r, Math.PI / 2, (3 * Math.PI) / 2, false);
-  const hole = new THREE.Path();
-  hole.absarc(0, 0, 3.2, 0, Math.PI * 2, true);
-  const hole2 = new THREE.Path();
-  hole2.absarc(length, 0, 3.2, 0, Math.PI * 2, true);
-  s.holes.push(hole, hole2);
-  const g = new THREE.ExtrudeGeometry(s, { depth: thick, bevelEnabled: false, curveSegments: 16 });
-  g.translate(0, 0, -thick / 2);
-  g.rotateY(-Math.PI / 2); // shape X → +Z local, extrusão → X
-  return mesh(g, mat);
-}
-
 function approach(cur, target, dt, rate = 7, minSpeed = 30) {
   const diff = target - cur;
   if (Math.abs(diff) < 0.02) return target;
@@ -89,7 +69,6 @@ export class Locker {
     this.hopper = { angle: 0, target: 0 };
     this.doors = {}; // front / back: { angle, target, shake, locked, busy, ... }
     this.explode = { v: 0, target: 0 };
-    this.baffleAngle = 0;
 
     this._buildBody();
     this._buildFrontFrame();
@@ -283,7 +262,7 @@ export class Locker {
   }
 
   _buildMechanism() {
-    const { D, hopper: hp, baffle: bf, link } = SPEC;
+    const { D, hopper: hp, hood } = SPEC;
     const m = this.m;
     const hz = D / 2;
     const mech = this._part('mech', [0, 0, 0]);
@@ -334,9 +313,6 @@ export class Locker {
       const tri = mesh(triGeo, m.mech);
       tri.position.x = side < 0 ? -hp.sideX - 2 : hp.sideX;
       body.add(tri);
-      // pino da biela
-      const pinX = link.x + link.t + 1;
-      body.add(cylX(m.chrome, 5, side < 0 ? -pinX : hp.sideX, side < 0 ? -hp.sideX : pinX, hp.pin.v, -hp.pin.u, 16));
     }
 
     // eixo da dobradiça do basculante + suportes laterais (fixos)
@@ -348,75 +324,46 @@ export class Locker {
       );
     }
 
-    // ---- Defletor anti-furto ----
-    const B = new THREE.Vector2(corner.x - bf.pivot.u, corner.y + bf.pivot.v);
-    this.bafflePivotPos = B;
-    const Q0 = new THREE.Vector2(B.x - bf.linkPoint.du, B.y + bf.linkPoint.dv);
-    this.baffleR = Q0.distanceTo(B);
-    const baffle = new THREE.Group();
-    baffle.position.set(0, B.y, B.x);
-    mech.add(baffle);
-    this.baffle = baffle;
-    const bw = bf.halfW;
-    baffle.add(box(m.mech, -bw, bw, -bf.length, bf.top, -1, 1));
-    baffle.add(cylX(m.chrome, 5, -203, 203, 0, 0, 16)); // eixo
-    for (const side of [-1, 1]) {
-      const qx = link.x + link.t + 1;
-      baffle.add(cylX(m.chrome, 4.5, side < 0 ? -qx : bw, side < 0 ? -bw : qx, -this.baffleR, 0, 16));
-      mech.add(box(m.galv, side < 0 ? -203 : 194, side < 0 ? -194 : 203, B.y - 16, B.y + 16, B.x - 14, B.x + 14));
-    }
+    // ---- Cúpula anti-furto (fixa, concêntrica ao eixo do basculante) ----
+    const hp0 = this.hopperPivotPos; // (z, y)
+    const hoodMat = m.galv.clone();
+    hoodMat.side = THREE.DoubleSide;
+    const t0 = (90 + hood.from) * DEG;
+    const tl = (hood.to - hood.from) * DEG;
+    const ix = SPEC.W / 2 - SPEC.sheet;
+    const hoodGeo = new THREE.CylinderGeometry(hood.radius, hood.radius, ix * 2, 72, 1, true, t0, tl);
+    hoodGeo.rotateZ(Math.PI / 2); // eixo em X; ângulo θ → (y = r·sinθ, z = r·cosθ)
+    const hoodMesh = mesh(hoodGeo, hoodMat);
+    hoodMesh.position.set(0, hp0.y, hp0.x);
+    mech.add(hoodMesh);
 
-    // ---- Bielas ----
-    const P0 = this._pinPosition(0);
-    this.linkLength = P0.distanceTo(Q0);
-    this.links = [];
+    // chapas laterais fixas: setor da cúpula, atrás dos retornos dos montantes
+    const arcPt = (deg) => [hp0.x - hood.radius * Math.sin(deg * DEG), hp0.y + hood.radius * Math.cos(deg * DEG)];
+    const lineAtZ = (deg) => {
+      const [z, y] = arcPt(deg);
+      const t = (hp0.x - hood.guardFrontZ) / (hp0.x - z);
+      return [hood.guardFrontZ, hp0.y + (y - hp0.y) * t];
+    };
+    const gs = new THREE.Shape();
+    const g0 = lineAtZ(hood.from);
+    gs.moveTo(-g0[0], g0[1]);
+    for (let d = hood.from; d <= hood.to + 1e-6; d += (hood.to - hood.from) / 40) {
+      const [z, y] = arcPt(d);
+      gs.lineTo(-z, y);
+    }
+    const g1 = lineAtZ(hood.to);
+    gs.lineTo(-g1[0], g1[1]);
+    gs.lineTo(-g0[0], g0[1]);
+    const guardGeo = new THREE.ExtrudeGeometry(gs, { depth: 2, bevelEnabled: false });
+    guardGeo.rotateY(Math.PI / 2); // shape (−z, y) → (z, y), extrusão em X
     for (const side of [-1, 1]) {
-      const l = linkBar(m.galv, this.linkLength, link.w, link.t);
-      l.position.x = side * (link.x + link.t / 2);
-      mech.add(l);
-      this.links.push(l);
+      const g = mesh(guardGeo, m.galv);
+      g.position.x = side < 0 ? -hood.guardX - 2 : hood.guardX;
+      mech.add(g);
     }
   }
 
-  // Posição do pino da biela (z, y) no referencial do locker para um ângulo do basculante
-  _pinPosition(angleDeg) {
-    const { hopper: hp } = SPEC;
-    const a = angleDeg * DEG;
-    const ly = hp.pin.v - hp.pivot.y; // no referencial do eixo
-    const lz = -hp.pin.u + hp.pivot.u;
-    const y = ly * Math.cos(a) - lz * Math.sin(a);
-    const z = ly * Math.sin(a) + lz * Math.cos(a);
-    return new THREE.Vector2(this.hopperPivotPos.x + z, this.hopperPivotPos.y + y);
-  }
-
-  // Mecanismo de 4 barras: basculante → biela → defletor
   _updateMechanism() {
-    const P = this._pinPosition(this.hopper.angle);
-    const B = this.bafflePivotPos;
-    const r = this.baffleR,
-      L = this.linkLength;
-    const d = P.distanceTo(B);
-    const a = (r * r - L * L + d * d) / (2 * d);
-    const h = Math.sqrt(Math.max(0, r * r - a * a));
-    const ex = (P.x - B.x) / d,
-      ey = (P.y - B.y) / d;
-    const bx = B.x + a * ex,
-      by = B.y + a * ey;
-    // duas soluções da interseção de círculos; usa a de baixo (defletor pendurado)
-    const q1 = new THREE.Vector2(bx + h * ey, by - h * ex);
-    const q2 = new THREE.Vector2(bx - h * ey, by + h * ex);
-    const q = q1.y < q2.y ? q1 : q2;
-
-    const dz = q.x - B.x,
-      dy = q.y - B.y;
-    this.baffle.rotation.x = Math.atan2(-dz, -dy);
-    this.baffleAngle = -this.baffle.rotation.x / DEG;
-
-    for (const l of this.links) {
-      l.position.y = P.y;
-      l.position.z = P.x;
-      l.rotation.x = Math.atan2(-(q.y - P.y), q.x - P.x);
-    }
     this.hopperPivot.rotation.x = this.hopper.angle * DEG;
   }
 

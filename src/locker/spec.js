@@ -38,14 +38,14 @@ export const SPEC = {
     faceW: 372,
     sideX: 182, // face interna das laterais triangulares
     pivot: { y: 4, u: 4 }, // eixo da dobradiça relativo à quina (u = para trás)
-    pin: { u: 128, v: 20 }, // pino da biela no triângulo lateral
     maxAngle: 75,
     // Chapa de fundo do basculante (gira junto), dobrada: 1º trecho = aba original
-    // (~23°), depois dobra para baixo a 60°. Pontos em (u = para trás, v = para cima).
+    // (~23°), depois dobra para baixo a 60° até quase o raio da cúpula (232 mm do eixo).
+    // Pontos em (u = para trás, v = para cima).
     floor: [
       [0, 25],
       [60, 0],
-      [120, -104],
+      [158, -170],
     ],
     // contorno da lateral em (u = para trás, v = para cima): triângulo + "bochecha"
     // que desce cobrindo a lateral da chapa de fundo (sem fresta para a mão passar)
@@ -55,8 +55,8 @@ export const SPEC = {
       [140, 52],
       // curva arredondada até a base
       ['q', 160, 18, 128, 0],
-      [124, -108],
-      [116, -108],
+      [163, -165],
+      [158, -170],
       [60, -1],
     ],
   },
@@ -64,17 +64,11 @@ export const SPEC = {
   // Defletor anti-furto pendurado no fundo, acionado pela biela.
   // Eixo 100 mm mais alto que no CAD e biela mais perto do eixo (giro de ~49°):
   // aberto, o pé do defletor encosta a ~15 mm da chapa de fundo do basculante.
-  // Anti-furto com a gaveta aberta: largura quase até as paredes (fresta lateral
-  // de 10 mm em vez de 21 mm); as bielas passam por fora, encostadas na parede.
-  baffle: {
-    halfW: 193,
-    pivot: { u: 362, v: 219 }, // relativo à quina do basculante
-    length: 280,
-    top: 10,
-    linkPoint: { dv: -139, du: -17 }, // ponto da biela em relação ao eixo (fechado)
-  },
-
-  link: { x: 196, t: 3, w: 16 }, // por fora do defletor (x 196–199)
+  // Anti-furto: cúpula fixa concêntrica ao eixo do basculante. A ponta da chapa de
+  // fundo da gaveta desliza rente a ela (folga ~8 mm) em QUALQUER ângulo de abertura,
+  // então a gaveta fica isolada do compartimento mesmo entreaberta. Ângulos (graus)
+  // medidos a partir da vertical, para trás. Chapas laterais fixas fecham as laterais.
+  hood: { radius: 240, from: 6, to: 138.5, guardX: 186, guardFrontZ: 171 },
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira

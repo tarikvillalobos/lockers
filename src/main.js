@@ -26,7 +26,6 @@ const parcels = new Parcels(locker);
 const dims = createDimensions();
 locker.root.add(dims.group);
 
-const baffleRest = locker.baffleAngle;
 let xray = false;
 
 // ---------- enquadramento (descontando o painel lateral) ----------
@@ -363,8 +362,7 @@ function updateStatus() {
   else if (Math.abs(ha - locker.hopper.target) > 0.1) set(ui.hopper, `Movendo ${ha.toFixed(0)}°`, 'warn');
   else set(ui.hopper, ha >= max - 0.1 ? `Aberto ${max}°` : `Aberto ${ha.toFixed(0)}°`, 'on');
 
-  const ba = locker.baffleAngle - baffleRest;
-  set(ui.baffle, ba > 8 ? `Bloqueando ${ba.toFixed(0)}°` : 'Recolhido', ba > 8 ? 'on' : '');
+  set(ui.baffle, ha > 0.3 ? 'Gaveta isolada' : 'Pronta', ha > 0.3 ? 'on' : 'ok');
 
   for (const [w, el] of [
     ['front', ui.door],
