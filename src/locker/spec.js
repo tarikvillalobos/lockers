@@ -42,7 +42,9 @@ export const SPEC = {
       // curva arredondada até a base
       ['q', 160, 18, 128, 0],
     ],
-    lip: { from: [0, 25], to: [58, 0] }, // aba-batente interna (inclinada p/ trás)
+    // Chapa de fundo do basculante (gira junto): fechado, desce para trás como rampa
+    // até perto do pé do defletor; aberto, sobe e vira a parede de trás da bandeja.
+    floor: { from: [0, 25], to: [165, -46] },
   },
 
   // Defletor anti-furto pendurado no fundo, acionado pela biela.
@@ -54,10 +56,6 @@ export const SPEC = {
   },
 
   link: { x: 189, t: 3, w: 16 },
-
-  // Rampa fixa sob o basculante: fecha o vão até o pé do defletor (anti-furto)
-  // e conduz a encomenda para o fundo. Pontos em (z, y).
-  chute: { from: [184, 560], to: [15, 478], halfW: 183 },
 
   // Área útil do compartimento inferior
   // z limitado pelos retornos/reforços das portas frontal e traseira

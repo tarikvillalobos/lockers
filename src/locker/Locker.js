@@ -307,9 +307,9 @@ export class Locker {
     body.add(box(m.front, -fw, fw, 0, hp.faceH, -2, 0));
     // aba-puxador superior (dobrada a 45° para fora)
     body.add(strip(m.front, hp.faceW, 2, [hp.faceH, -1], [hp.faceH - 13, 12]));
-    // aba-batente interna
-    const lip = strip(m.mech, hp.sideX * 2, 2, [hp.lip.from[1], -2 - hp.lip.from[0]], [hp.lip.to[1] + 1, -hp.lip.to[0]]);
-    body.add(lip);
+    // chapa de fundo (rampa quando fechado, parede de trás quando aberto)
+    const fl = hp.floor;
+    body.add(strip(m.mech, hp.sideX * 2, 2, [fl.from[1], -2 - fl.from[0]], [fl.to[1], -fl.to[0]]));
 
     // laterais triangulares
     const s = new THREE.Shape();
@@ -355,20 +355,6 @@ export class Locker {
     for (const side of [-1, 1]) {
       baffle.add(cylX(m.chrome, 4.5, side < 0 ? -197 : bw, side < 0 ? -bw : 197, -this.baffleR, 0, 16));
       mech.add(box(m.galv, side < 0 ? -203 : 194, side < 0 ? -194 : 203, B.y - 16, B.y + 16, B.x - 14, B.x + 14));
-    }
-
-    // ---- Rampa fixa sob o basculante ----
-    const ch = SPEC.chute;
-    const [cz0, cy0] = ch.from;
-    const [cz1, cy1] = ch.to;
-    mech.add(strip(m.mech, ch.halfW * 2, 2, [cy0, cz0], [cy1, cz1]));
-    // cantoneiras de fixação nas laterais (abaixo da chapa, longe das bielas)
-    for (const side of [-1, 1]) {
-      for (const t of [0.15, 0.8]) {
-        const z = THREE.MathUtils.lerp(cz0, cz1, t);
-        const y = THREE.MathUtils.lerp(cy0, cy1, t);
-        mech.add(box(m.galv, side < 0 ? -203 : ch.halfW, side < 0 ? -ch.halfW : 203, y - 16, y - 2, z - 14, z + 14));
-      }
     }
 
     // ---- Bielas ----

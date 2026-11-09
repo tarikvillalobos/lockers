@@ -176,7 +176,9 @@ export class Parcels {
     const q1 = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'));
     const target = new THREE.Vector3(item.x, item.base + item.h / 2, item.z);
     // 1) escorrega pela rampa até a borda de trás; 2) cai até o ponto de apoio
-    const [ez, ey] = SPEC.chute.to;
+    // borda de trás da chapa de fundo do basculante (posição fechada)
+    const ez = SPEC.D / 2 - SPEC.hopper.floor.to[0];
+    const ey = SPEC.hopper.cornerY + SPEC.hopper.floor.to[1];
     const w = new THREE.Vector3(THREE.MathUtils.lerp(p0.x, target.x, 0.4), ey + 55, ez - 15);
     const qm = new THREE.Quaternion().slerpQuaternions(q0, q1, 0.45);
     const drop = Math.max(10, w.y - target.y);
