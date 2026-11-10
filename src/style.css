@@ -470,3 +470,11 @@ kbd {
     bottom: calc(52vh + 12px);
   }
 }
+
+a.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}

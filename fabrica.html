@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fábrica · Locker Residencial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="viewport"></div>
+
+    <div class="loading" id="loading">
+      <div class="loading-card">
+        <span class="brand-mark"></span>
+        <div>
+          <div class="loading-title">Montando a fábrica</div>
+          <div class="loading-sub mono" id="loadingStep">gerando as peças de chapa…</div>
+        </div>
+      </div>
+    </div>
+
+    <header class="hud top-left card">
+      <div class="title-row">
+        <span class="brand-mark"></span>
+        <div>
+          <div class="h-title">Fábrica <span class="acc">LR-1020</span></div>
+          <div class="h-sub mono">da chapa de aço ao caminhão · linha completa</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">Armário 3D</a>
+        <a href="./pecas.html">Peças (CAD)</a>
+        <a href="./fabrica.html" class="active">Fábrica</a>
+      </nav>
+    </header>
+
+    <div class="hud top-right" id="kpis">
+      <div class="card kpi"><b class="acc" id="kProduced">0</b><span>armários produzidos</span></div>
+      <div class="card kpi"><b id="kTakt">24 s</b><span>ciclo por armário</span></div>
+      <div class="card kpi"><b>43</b><span>peças de chapa</span></div>
+      <div class="card kpi"><b>12</b><span>robôs</span></div>
+    </div>
+
+    <aside class="hud bottom-left card station" id="stationCard">
+      <div class="st-head">
+        <span class="st-n mono" id="stN">01</span>
+        <div class="st-name" id="stName">Recebimento de chapas</div>
+      </div>
+      <p class="st-text" id="stText"></p>
+      <dl class="st-specs mono" id="stSpecs"></dl>
+      <div class="st-progress"><i id="stBar"></i></div>
+      <div class="st-foot mono" id="stFoot">ciclo 0 %</div>
+    </aside>
+
+    <div class="hud bottom-center">
+      <div class="card strip" id="strip"></div>
+      <div class="card controls">
+        <button class="ctl" id="btnPlay" title="Pausar ou continuar">❚❚</button>
+        <div class="seg" id="speedSeg">
+          <button data-speed="1">1×</button>
+          <button data-speed="2" class="active">2×</button>
+          <button data-speed="4">4×</button>
+          <button data-speed="8">8×</button>
+        </div>
+        <button class="ctl wide active" id="btnTour">Passeio automático</button>
+        <button class="ctl wide" id="btnOverview">Vista geral</button>
+        <div class="seg" id="qualitySeg" title="Qualidade gráfica">
+          <button data-q="media">Média</button>
+          <button data-q="alta">Alta</button>
+          <button data-q="ultra" class="active">Ultra</button>
+        </div>
+        <span class="fps mono" id="fps">— fps</span>
+      </div>
+    </div>
+
+    <script type="module" src="/src/factory/main.js"></script>
+  </body>
+</html>

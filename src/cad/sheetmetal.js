@@ -202,6 +202,7 @@ export function flatPattern(part) {
     inner,
     circles: circ,
     bends: bnd,
+    origin: [x0, y0], // canto da caixa envolvente, no referencial da face base
     width: x1 - x0,
     height: y1 - y0,
     area,

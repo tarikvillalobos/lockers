@@ -3,6 +3,53 @@
 Modelo 3D funcional, feito em [three.js](https://threejs.org), do locker residencial de encomendas
 **LR-1020** (410 × 380 × 1020 mm), baseado nos desenhos do SolidWorks.
 
+## Três páginas
+
+| Página | O que é |
+| --- | --- |
+| `index.html` | O armário interativo (este modelo 3D, com o mecanismo funcionando). |
+| `pecas.html` | **Peças de chapa (CAD).** As 43 peças do armário como chapa dobrada: conjunto montado e explodido, cada peça com a dobra animada, a planificação cotada e o download do DXF. |
+| `fabrica.html` | **Fábrica 3D.** A linha de produção completa, da chegada das chapas ao caminhão saindo com os armários embalados. |
+
+### Peças de chapa e pacote de fabricação
+
+As peças são definidas em `src/cad/parts.js` a partir das mesmas medidas do modelo (`spec.js`): face base + abas, com
+medidas externas. O motor em `src/cad/sheetmetal.js` calcula a planificação com desconto de dobra (raio interno igual à
+espessura, fator K 0,42), as linhas de dobra e a sequência para a dobradeira.
+
+```bash
+npm run fabricacao
+```
+
+gera a pasta `fabricacao/` para mandar à metalúrgica:
+
+- `dxf/`: planificação 1:1 de cada peça (camadas `CORTE`, `DOBRA_CIMA`, `DOBRA_BAIXO`, `GRAVACAO`).
+- `desenhos/`: folha A3 de cada peça com cotas gerais, dobras numeradas, furos e notas de solda.
+- `aninhamento/`: as peças de um armário em chapas de 3000 × 1500 mm, por espessura.
+- `lista-de-materiais-A1/A2/A3.csv`: peças, massas e itens comprados de cada modelo.
+- `LEIA-ME.md`: roteiro de corte, dobra, solda, pintura e montagem.
+
+O mesmo pacote sai em `.zip` pelo botão da página de peças. Um armário (modelo 3) usa 43 peças de chapa em 20 códigos,
+47 kg de aço, 48 m de corte e 90 dobras. O desenvolvido usa um fator K genérico: confira com a tabela da dobradeira da
+metalúrgica antes do corte em série.
+
+### Fábrica 3D
+
+Linha em U com nove estações, tudo animado em função do tempo (um armário a cada 24 s de simulação em 1×):
+
+1. **Recebimento de chapas**: doca, empilhadeira e pórtico a vácuo que alimenta o laser.
+2. **Corte a laser**: o cabeçote percorre o aninhamento real das peças de 2 mm; mesa de troca automática.
+3. **Dobra CNC**: robô sobre trilho posiciona o recorte e cada aba dobra na ordem da dobradeira.
+4. **Solda da carcaça**: um robô monta as 7 peças no gabarito e dois robôs MIG soldam.
+5. **Pintura eletrostática**: trilho aéreo de 71 m com lavagem, cabine de pó (a peça muda de aço cru para pó) e estufa.
+6. **Montagem**: base, mecanismo, portas, eletrônica e tampo, um posto por etapa.
+7. **Teste funcional**: o basculante e a porta são acionados no armário de verdade (mesmo mecanismo do modelo).
+8. **Embalagem e paletização**: caixa, cintas, 4 caixas por palete e filme stretch.
+9. **Expedição**: a empilhadeira carrega o caminhão, o portão abre e ele sai da fábrica.
+
+Controles: passeio automático pelas estações, vista geral, velocidade (1× a 8×), pausa e qualidade gráfica
+(Ultra, Alta, Média; baixa sozinha se a máquina não acompanhar). Setas ←/→ trocam de estação e a barra de espaço pausa.
+
 ## Rodar
 
 Requer Node.js 20.19+ ou 22.12+ (exigência do Vite 8).
