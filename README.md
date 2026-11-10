@@ -7,9 +7,9 @@ Modelo 3D funcional, feito em [three.js](https://threejs.org), do locker residen
 
 | Página | O que é |
 | --- | --- |
-| `index.html` | O armário interativo (este modelo 3D, com o mecanismo funcionando). |
+| `index.html` | **Fábrica 3D** (página inicial). A linha de produção completa, da chegada das chapas ao caminhão saindo com os armários embalados. |
+| `armario.html` | O armário interativo (este modelo 3D, com o mecanismo funcionando). |
 | `pecas.html` | **Peças de chapa (CAD).** As 43 peças do armário como chapa dobrada: conjunto montado e explodido, cada peça com a dobra animada, a planificação cotada e o download do DXF. |
-| `fabrica.html` | **Fábrica 3D.** A linha de produção completa, da chegada das chapas ao caminhão saindo com os armários embalados. |
 
 ### Peças de chapa e pacote de fabricação
 

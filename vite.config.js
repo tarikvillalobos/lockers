@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1200,
     rolldownOptions: {
-      input: { index: 'index.html', pecas: 'pecas.html', fabrica: 'fabrica.html' },
+      input: { index: 'index.html', armario: 'armario.html', pecas: 'pecas.html' },
     },
   },
 });
