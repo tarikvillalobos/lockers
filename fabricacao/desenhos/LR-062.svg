@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 297" font-family="'IBM Plex Mono', ui-monospace, Menlo, monospace" font-size="3.2" fill="#14181d">
+<rect width="420" height="297" fill="#fff"/>
+<rect x="6" y="6" width="408" height="285" fill="none" stroke="#14181d" stroke-width="0.5"/>
+<path d="M22.00 194.91 L278.00 194.91 L278.00 57.09 L22.00 57.09 Z" fill="#eef1f5" fill-rule="evenodd" stroke="#14181d" stroke-width="0.45" stroke-linejoin="round"/>
+<circle cx="25.63" cy="143.14" r="2.18" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="274.37" cy="143.14" r="2.18" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<line x1="29.42" y1="194.91" x2="29.42" y2="57.09" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="29.42" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="29.42" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">1</text>
+<line x1="270.58" y1="57.09" x2="270.58" y2="194.91" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="270.58" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="270.58" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">2</text>
+<path d="M22 195.91038675581905 V203.91038675581905 M278 195.91038675581905 V203.91038675581905 M21 194.91038675581905 H13 M21 57.08961324418094 H13" stroke="#62666b" stroke-width="0.2"/>
+<line x1="22" y1="201.91038675581905" x2="278" y2="201.91038675581905" stroke="#62666b" stroke-width="0.25"/>
+<path d="M23.6 201.11038675581904 L22 201.91038675581905 L23.6 202.71038675581906 M276.4 201.11038675581904 L278 201.91038675581905 L276.4 202.71038675581906" fill="none" stroke="#62666b" stroke-width="0.25"/>
+<text x="150" y="200.51038675581904" text-anchor="middle" fill="#62666b">352.92</text>
+<line x1="15" y1="194.91038675581905" x2="15" y2="57.08961324418094" stroke="#62666b" stroke-width="0.25"/>
+<path d="M14.2 193.31038675581905 L15 194.91038675581905 L15.8 193.31038675581905 M14.2 58.68961324418094 L15 57.08961324418094 L15.8 58.68961324418094" fill="none" stroke="#62666b" stroke-width="0.25"/>
+<text transform="translate(13.4 126) rotate(-90)" text-anchor="middle" fill="#62666b">190</text>
+<text x="290" y="16" font-size="6" font-weight="700" font-family="Barlow, system-ui, sans-serif">LR-062</text>
+<text x="290" y="22.5" font-size="4.2" font-family="Barlow, system-ui, sans-serif">Aba superior (viseira)</text>
+<text x="290" y="30.5" fill="#62666b">Material</text><text x="334" y="30.5">Aço galvanizado Z275</text>
+<text x="290" y="35.5" fill="#62666b">Espessura</text><text x="334" y="35.5" font-weight="600">2 mm (#14)</text>
+<text x="290" y="40.5" fill="#62666b">Quantidade</text><text x="334" y="40.5" font-weight="600">1 por armário</text>
+<text x="290" y="45.5" fill="#62666b">Conjunto</text><text x="334" y="45.5">Mecanismo</text>
+<text x="290" y="50.5" fill="#62666b">Acabamento</text><text x="334" y="50.5">Galvanizado (sem pintura)</text>
+<text x="290" y="55.5" fill="#62666b">Planificado</text><text x="334" y="55.5">352.92 × 190 mm</text>
+<text x="290" y="60.5" fill="#62666b">Massa</text><text x="334" y="60.5">1.05 kg</text>
+<text x="290" y="65.5" fill="#62666b">Corte</text><text x="334" y="65.5">1.12 m · 3 furações</text>
+<text x="290" y="70.5" fill="#62666b">Raio interno</text><text x="334" y="70.5">R2 · fator K 0,42</text>
+<text x="290" y="78.5" font-weight="600" font-size="3.4">Dobras (2)</text>
+<line x1="290" y1="80.1" x2="408" y2="80.1" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="84.5" fill="#1d5fd1"> 1</text><text x="298" y="84.5" fill="#1d5fd1">cima</text><text x="314" y="84.5">90°</text><text x="326" y="84.5">L 190</text><text x="352" y="84.5">X 10.23</text>
+<text x="290" y="88.9" fill="#1d5fd1"> 2</text><text x="298" y="88.9" fill="#1d5fd1">cima</text><text x="314" y="88.9">90°</text><text x="326" y="88.9">L 190</text><text x="352" y="88.9">X 342.69</text>
+<text x="290" y="96.30000000000001" font-weight="600" font-size="3.4">Furos e recortes</text>
+<line x1="290" y1="97.9" x2="408" y2="97.9" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="102.30000000000001">2 ×</text><text x="302" y="102.30000000000001">Ø6</text>
+<text x="290" y="109.70000000000002" font-weight="600" font-size="3.4">Solda e montagem</text>
+<line x1="290" y1="111.30000000000001" x2="408" y2="111.30000000000001" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="115.70000000000002">Soldar o tubo da dobradiça Ø7 na borda do eixo.</text>
+<line x1="22" y1="255" x2="34" y2="255" stroke="#14181d" stroke-width="0.45"/><text x="37" y="256">corte (camada CORTE)</text>
+<line x1="92" y1="255" x2="104" y2="255" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/><text x="107" y="256" fill="#1d5fd1">dobra para cima</text>
+<line x1="152" y1="255" x2="164" y2="255" stroke="#d1342f" stroke-width="0.3" stroke-dasharray="2.4 1.2"/><text x="167" y="256" fill="#d1342f">dobra para baixo</text>
+<text x="22" y="262" fill="#62666b">Vista do lado da gravação. Medidas em mm. Tolerância geral ±0,3 (corte) e ±0,5 / ±1° (dobra).</text>
+<text x="22" y="267" fill="#62666b">Desenvolvido calculado com fator K 0,42: conferir com a tabela da dobradeira antes do corte em série.</text>
+<rect x="284" y="263" width="130" height="28" fill="#fff" stroke="#14181d" stroke-width="0.4"/>
+<line x1="284" y1="277" x2="414" y2="277" stroke="#14181d" stroke-width="0.25"/>
+<line x1="362" y1="263" x2="362" y2="291" stroke="#14181d" stroke-width="0.25"/>
+<text x="287" y="268" fill="#62666b" font-size="2.6">PROJETO</text><text x="287" y="274" font-size="4" font-weight="600" font-family="Barlow, system-ui, sans-serif">Locker Residencial LR-1020</text>
+<text x="287" y="282" fill="#62666b" font-size="2.6">PEÇA</text><text x="287" y="288" font-size="3.6">Aba superior (viseira)</text>
+<text x="365" y="268" fill="#62666b" font-size="2.6">CÓDIGO</text><text x="365" y="274" font-size="4.2" font-weight="700">LR-062</text>
+<text x="365" y="282" fill="#62666b" font-size="2.6">ESCALA · REV · MODELO</text><text x="365" y="288" font-size="3.6">1:1.4 · A · A1 A2 A3</text>
+</svg>

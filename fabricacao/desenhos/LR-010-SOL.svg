@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 297" font-family="'IBM Plex Mono', ui-monospace, Menlo, monospace" font-size="3.2" fill="#14181d">
+<rect width="420" height="297" fill="#fff"/>
+<rect x="6" y="6" width="408" height="285" fill="none" stroke="#14181d" stroke-width="0.5"/>
+<path d="M104.18 228.55 L114.42 228.55 L114.42 232.00 L185.58 232.00 L185.58 228.55 L195.82 228.55 L195.82 23.45 L185.58 23.45 L185.58 20.00 L114.42 20.00 L114.42 23.45 L104.18 23.45 L104.18 151.53 L110.60 151.53 L110.60 158.23 L104.18 158.23 Z" fill="#eef1f5" fill-rule="evenodd" stroke="#14181d" stroke-width="0.45" stroke-linejoin="round"/>
+<circle cx="162.56" cy="62.58" r="0.73" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="126.56" cy="152.37" r="0.47" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="119.44" cy="157.81" r="0.47" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="129.07" cy="22.09" r="0.94" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="170.93" cy="22.09" r="0.94" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="170.93" cy="229.91" r="0.94" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="129.07" cy="229.91" r="0.94" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<line x1="189.40" y1="23.45" x2="189.40" y2="228.55" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="189.40" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="189.40" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">1</text>
+<line x1="192.42" y1="23.45" x2="192.42" y2="228.55" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="192.42" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="192.42" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">2</text>
+<line x1="110.60" y1="228.55" x2="110.60" y2="23.45" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="110.60" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="110.60" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">3</text>
+<line x1="107.58" y1="228.55" x2="107.58" y2="23.45" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="107.58" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="107.58" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">4</text>
+<line x1="114.42" y1="23.82" x2="185.58" y2="23.82" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="150.00" cy="23.82" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="150.00" y="24.87" text-anchor="middle" font-size="2.6" fill="#1d5fd1">5</text>
+<line x1="185.58" y1="228.18" x2="114.42" y2="228.18" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="150.00" cy="228.18" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="150.00" y="229.23" text-anchor="middle" font-size="2.6" fill="#1d5fd1">6</text>
+<path d="M104.18059390274274 233 V241 M195.81940609725726 233 V241 M103.18059390274274 232 H95.18059390274274 M103.18059390274274 20 H95.18059390274274" stroke="#62666b" stroke-width="0.2"/>
+<line x1="104.18059390274274" y1="239" x2="195.81940609725726" y2="239" stroke="#62666b" stroke-width="0.25"/>
+<path d="M105.78059390274274 238.2 L104.18059390274274 239 L105.78059390274274 239.8 M194.21940609725726 238.2 L195.81940609725726 239 L194.21940609725726 239.8" fill="none" stroke="#62666b" stroke-width="0.25"/>
+<text x="150" y="237.6" text-anchor="middle" fill="#62666b">437.84</text>
+<line x1="97.18059390274274" y1="232" x2="97.18059390274274" y2="20" stroke="#62666b" stroke-width="0.25"/>
+<path d="M96.38059390274275 230.4 L97.18059390274274 232 L97.98059390274274 230.4 M96.38059390274275 21.6 L97.18059390274274 20 L97.98059390274274 21.6" fill="none" stroke="#62666b" stroke-width="0.25"/>
+<text transform="translate(95.58059390274275 126) rotate(-90)" text-anchor="middle" fill="#62666b">1012.92</text>
+<text x="290" y="16" font-size="6" font-weight="700" font-family="Barlow, system-ui, sans-serif">LR-010-SOL</text>
+<text x="290" y="22.5" font-size="4.2" font-family="Barlow, system-ui, sans-serif">Lateral direita</text>
+<text x="290" y="30.5" fill="#62666b">Material</text><text x="334" y="30.5">Aço carbono SAE 1008 laminado a frio</text>
+<text x="290" y="35.5" fill="#62666b">Espessura</text><text x="334" y="35.5" font-weight="600">2 mm (#14)</text>
+<text x="290" y="40.5" fill="#62666b">Quantidade</text><text x="334" y="40.5" font-weight="600">1 por armário</text>
+<text x="290" y="45.5" fill="#62666b">Conjunto</text><text x="334" y="45.5">Carcaça soldada</text>
+<text x="290" y="50.5" fill="#62666b">Acabamento</text><text x="334" y="50.5">Pintura eletrostática RAL 7016</text>
+<text x="290" y="55.5" fill="#62666b">Planificado</text><text x="334" y="55.5">437.84 × 1012.92 mm</text>
+<text x="290" y="60.5" fill="#62666b">Massa</text><text x="334" y="60.5">6.89 kg</text>
+<text x="290" y="65.5" fill="#62666b">Corte</text><text x="334" y="65.5">3.13 m · 8 furações</text>
+<text x="290" y="70.5" fill="#62666b">Raio interno</text><text x="334" y="70.5">R2 · fator K 0,42</text>
+<text x="290" y="78.5" font-weight="600" font-size="3.4">Dobras (6)</text>
+<line x1="290" y1="80.1" x2="408" y2="80.1" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="84.5" fill="#1d5fd1"> 1</text><text x="298" y="84.5" fill="#1d5fd1">cima</text><text x="314" y="84.5">90°</text><text x="326" y="84.5">L 980</text><text x="352" y="84.5">X 407.15</text>
+<text x="290" y="88.9" fill="#1d5fd1"> 2</text><text x="298" y="88.9" fill="#1d5fd1">cima</text><text x="314" y="88.9">90°</text><text x="326" y="88.9">L 980</text><text x="352" y="88.9">X 421.61</text>
+<text x="290" y="93.30000000000001" fill="#1d5fd1"> 3</text><text x="298" y="93.30000000000001" fill="#1d5fd1">cima</text><text x="314" y="93.30000000000001">90°</text><text x="326" y="93.30000000000001">L 980</text><text x="352" y="93.30000000000001">X 30.69</text>
+<text x="290" y="97.70000000000002" fill="#1d5fd1"> 4</text><text x="298" y="97.70000000000002" fill="#1d5fd1">cima</text><text x="314" y="97.70000000000002">90°</text><text x="326" y="97.70000000000002">L 980</text><text x="352" y="97.70000000000002">X 16.23</text>
+<text x="290" y="102.10000000000002" fill="#1d5fd1"> 5</text><text x="298" y="102.10000000000002" fill="#1d5fd1">cima</text><text x="314" y="102.10000000000002">90°</text><text x="326" y="102.10000000000002">L 340</text><text x="352" y="102.10000000000002">Y 994.69</text>
+<text x="290" y="106.50000000000003" fill="#1d5fd1"> 6</text><text x="298" y="106.50000000000003" fill="#1d5fd1">cima</text><text x="314" y="106.50000000000003">90°</text><text x="326" y="106.50000000000003">L 340</text><text x="352" y="106.50000000000003">Y 18.23</text>
+<text x="290" y="113.90000000000003" font-weight="600" font-size="3.4">Furos e recortes</text>
+<line x1="290" y1="115.50000000000003" x2="408" y2="115.50000000000003" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="119.90000000000003">1 ×</text><text x="302" y="119.90000000000003">Ø7</text>
+<text x="290" y="124.30000000000004">2 ×</text><text x="302" y="124.30000000000004">Ø4.5</text>
+<text x="290" y="128.70000000000005">2 ×</text><text x="302" y="128.70000000000005">recorte 32 × 18</text>
+<text x="290" y="133.10000000000005">4 ×</text><text x="302" y="133.10000000000005">Ø9</text>
+<text x="290" y="140.50000000000006" font-weight="600" font-size="3.4">Solda e montagem</text>
+<line x1="290" y1="142.10000000000005" x2="408" y2="142.10000000000005" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="146.50000000000006">Solda ponto nas abas de 20 mm (base/tampo aparafusados).</text>
+<line x1="22" y1="255" x2="34" y2="255" stroke="#14181d" stroke-width="0.45"/><text x="37" y="256">corte (camada CORTE)</text>
+<line x1="92" y1="255" x2="104" y2="255" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/><text x="107" y="256" fill="#1d5fd1">dobra para cima</text>
+<line x1="152" y1="255" x2="164" y2="255" stroke="#d1342f" stroke-width="0.3" stroke-dasharray="2.4 1.2"/><text x="167" y="256" fill="#d1342f">dobra para baixo</text>
+<text x="22" y="262" fill="#62666b">Vista do lado da gravação. Medidas em mm. Tolerância geral ±0,3 (corte) e ±0,5 / ±1° (dobra).</text>
+<text x="22" y="267" fill="#62666b">Desenvolvido calculado com fator K 0,42: conferir com a tabela da dobradeira antes do corte em série.</text>
+<rect x="284" y="263" width="130" height="28" fill="#fff" stroke="#14181d" stroke-width="0.4"/>
+<line x1="284" y1="277" x2="414" y2="277" stroke="#14181d" stroke-width="0.25"/>
+<line x1="362" y1="263" x2="362" y2="291" stroke="#14181d" stroke-width="0.25"/>
+<text x="287" y="268" fill="#62666b" font-size="2.6">PROJETO</text><text x="287" y="274" font-size="4" font-weight="600" font-family="Barlow, system-ui, sans-serif">Locker Residencial LR-1020</text>
+<text x="287" y="282" fill="#62666b" font-size="2.6">PEÇA</text><text x="287" y="288" font-size="3.6">Lateral direita</text>
+<text x="365" y="268" fill="#62666b" font-size="2.6">CÓDIGO</text><text x="365" y="274" font-size="4.2" font-weight="700">LR-010-SOL</text>
+<text x="365" y="282" fill="#62666b" font-size="2.6">ESCALA · REV · MODELO</text><text x="365" y="288" font-size="3.6">1:4.8 · A · A2 A3</text>
+</svg>

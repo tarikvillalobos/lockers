@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Peças de chapa · Locker Residencial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <div>
+          <div class="brand-title">Peças de chapa</div>
+          <div class="brand-sub mono">LR-1020 · corte a laser · dobra · solda</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="./index.html">Armário 3D</a>
+        <a href="./pecas.html" class="active">Peças (CAD)</a>
+        <a href="./fabrica.html">Fábrica</a>
+      </nav>
+      <div class="seg" id="modelSeg">
+        <button data-model="cylinder">Armário 1 · chave</button>
+        <button data-model="solenoid">Armário 2 · solenoide</button>
+        <button data-model="drawer" class="active">Armário 3 · gaveta</button>
+      </div>
+    </header>
+
+    <main class="cad-grid">
+      <aside class="card list">
+        <div class="totals" id="totals"></div>
+        <div class="list-scroll" id="partList"></div>
+        <button class="btn primary" id="btnZip">Baixar pacote de fabricação (.zip)</button>
+        <div class="hint">DXF 1:1 de cada peça, desenhos, lista de materiais dos 3 modelos e aninhamento.</div>
+      </aside>
+
+      <section class="stage">
+        <div id="view3d"></div>
+        <div class="stage-title">
+          <div class="mono" id="stCode">CONJUNTO</div>
+          <div id="stName">Armário completo</div>
+        </div>
+        <div class="card tools">
+          <label class="slider" id="foldWrap">
+            <span><span id="foldLabel">Dobra</span> <b class="mono" id="foldVal">100%</b></span>
+            <input type="range" id="fold" min="0" max="100" value="100" />
+          </label>
+          <button class="btn" id="btnPlay">Animar dobra</button>
+          <label class="tg"><input type="checkbox" id="tgEdges" checked /><span>Linhas CAD</span></label>
+          <label class="tg"><input type="checkbox" id="tgColors" /><span>Cores por conjunto</span></label>
+        </div>
+      </section>
+
+      <aside class="card sheet">
+        <div class="drawing" id="drawing"></div>
+        <dl class="props mono" id="props"></dl>
+        <div class="btn-row">
+          <button class="btn" id="btnDxf">Baixar DXF</button>
+          <button class="btn" id="btnSvg">Baixar desenho</button>
+        </div>
+      </aside>
+    </main>
+
+    <script type="module" src="/src/cad/page.js"></script>
+  </body>
+</html>

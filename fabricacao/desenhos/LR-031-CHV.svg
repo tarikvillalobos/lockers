@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 297" font-family="'IBM Plex Mono', ui-monospace, Menlo, monospace" font-size="3.2" fill="#14181d">
+<rect width="420" height="297" fill="#fff"/>
+<rect x="6" y="6" width="408" height="285" fill="none" stroke="#14181d" stroke-width="0.5"/>
+<path d="M22.00 147.85 L28.35 147.85 L28.35 156.34 L39.55 156.34 L39.55 166.33 L48.05 166.33 L48.05 172.68 L251.95 172.68 L251.95 166.33 L260.45 166.33 L260.45 156.34 L271.65 156.34 L271.65 147.85 L278.00 147.85 L278.00 104.15 L271.65 104.15 L271.65 95.66 L260.45 95.66 L260.45 85.67 L251.95 85.67 L251.95 79.32 L48.05 79.32 L48.05 85.67 L39.55 85.67 L39.55 95.66 L28.35 95.66 L28.35 104.15 L22.00 104.15 Z" fill="#eef1f5" fill-rule="evenodd" stroke="#14181d" stroke-width="0.45" stroke-linejoin="round"/>
+<circle cx="239.82" cy="126.00" r="5.77" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="34.42" cy="138.14" r="1.52" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<circle cx="34.42" cy="113.86" r="1.52" fill="#fff" stroke="#14181d" stroke-width="0.35"/>
+<line x1="39.41" y1="156.34" x2="39.41" y2="95.66" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="39.41" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="39.41" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">1</text>
+<line x1="29.42" y1="147.85" x2="29.42" y2="104.15" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="29.42" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="29.42" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">2</text>
+<line x1="260.59" y1="95.66" x2="260.59" y2="156.34" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="260.59" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="260.59" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">3</text>
+<line x1="270.58" y1="104.15" x2="270.58" y2="147.85" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="270.58" cy="126.00" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="270.58" y="127.05" text-anchor="middle" font-size="2.6" fill="#1d5fd1">4</text>
+<line x1="39.55" y1="96.73" x2="260.45" y2="96.73" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="150.00" cy="96.73" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="150.00" y="97.78" text-anchor="middle" font-size="2.6" fill="#1d5fd1">5</text>
+<line x1="48.05" y1="86.74" x2="251.95" y2="86.74" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="150.00" cy="86.74" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="150.00" y="87.79" text-anchor="middle" font-size="2.6" fill="#1d5fd1">6</text>
+<line x1="260.45" y1="155.27" x2="39.55" y2="155.27" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="150.00" cy="155.27" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="150.00" y="156.32" text-anchor="middle" font-size="2.6" fill="#1d5fd1">7</text>
+<line x1="251.95" y1="165.26" x2="48.05" y2="165.26" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/>
+<circle cx="150.00" cy="165.26" r="2.3" fill="#fff" stroke="#1d5fd1" stroke-width="0.3"/>
+<text x="150.00" y="166.31" text-anchor="middle" font-size="2.6" fill="#1d5fd1">8</text>
+<path d="M22 173.68088683649015 V181.68088683649015 M278 173.68088683649015 V181.68088683649015 M21 172.68088683649015 H13 M21 79.31911316350985 H13" stroke="#62666b" stroke-width="0.2"/>
+<line x1="22" y1="179.68088683649015" x2="278" y2="179.68088683649015" stroke="#62666b" stroke-width="0.25"/>
+<path d="M23.6 178.88088683649013 L22 179.68088683649015 L23.6 180.48088683649016 M276.4 178.88088683649013 L278 179.68088683649015 L276.4 180.48088683649016" fill="none" stroke="#62666b" stroke-width="0.25"/>
+<text x="150" y="178.28088683649014" text-anchor="middle" fill="#62666b">421.84</text>
+<line x1="15" y1="172.68088683649015" x2="15" y2="79.31911316350985" stroke="#62666b" stroke-width="0.25"/>
+<path d="M14.2 171.08088683649015 L15 172.68088683649015 L15.8 171.08088683649015 M14.2 80.91911316350985 L15 79.31911316350985 L15.8 80.91911316350985" fill="none" stroke="#62666b" stroke-width="0.25"/>
+<text transform="translate(13.4 126) rotate(-90)" text-anchor="middle" fill="#62666b">153.84</text>
+<text x="290" y="16" font-size="6" font-weight="700" font-family="Barlow, system-ui, sans-serif">LR-031-CHV</text>
+<text x="290" y="22.5" font-size="4.2" font-family="Barlow, system-ui, sans-serif">Tampa do módulo eletrônico</text>
+<text x="290" y="30.5" fill="#62666b">Material</text><text x="334" y="30.5">Aço carbono SAE 1008 laminado a frio</text>
+<text x="290" y="35.5" fill="#62666b">Espessura</text><text x="334" y="35.5" font-weight="600">2 mm (#14)</text>
+<text x="290" y="40.5" fill="#62666b">Quantidade</text><text x="334" y="40.5" font-weight="600">1 por armário</text>
+<text x="290" y="45.5" fill="#62666b">Conjunto</text><text x="334" y="45.5">Portas</text>
+<text x="290" y="50.5" fill="#62666b">Acabamento</text><text x="334" y="50.5">Pintura eletrostática RAL 7016</text>
+<text x="290" y="55.5" fill="#62666b">Planificado</text><text x="334" y="55.5">421.84 × 153.84 mm</text>
+<text x="290" y="60.5" fill="#62666b">Massa</text><text x="334" y="60.5">0.95 kg</text>
+<text x="290" y="65.5" fill="#62666b">Corte</text><text x="334" y="65.5">1.24 m · 4 furações</text>
+<text x="290" y="70.5" fill="#62666b">Raio interno</text><text x="334" y="70.5">R2 · fator K 0,42</text>
+<text x="290" y="78.5" font-weight="600" font-size="3.4">Dobras (8)</text>
+<line x1="290" y1="80.1" x2="408" y2="80.1" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="84.5" fill="#1d5fd1"> 1</text><text x="298" y="84.5" fill="#1d5fd1">cima</text><text x="314" y="84.5">90°</text><text x="326" y="84.5">L 100</text><text x="352" y="84.5">X 28.69</text>
+<text x="290" y="88.9" fill="#1d5fd1"> 2</text><text x="298" y="88.9" fill="#1d5fd1">cima</text><text x="314" y="88.9">90°</text><text x="326" y="88.9">L 72</text><text x="352" y="88.9">X 12.23</text>
+<text x="290" y="93.30000000000001" fill="#1d5fd1"> 3</text><text x="298" y="93.30000000000001" fill="#1d5fd1">cima</text><text x="314" y="93.30000000000001">90°</text><text x="326" y="93.30000000000001">L 100</text><text x="352" y="93.30000000000001">X 393.15</text>
+<text x="290" y="97.70000000000002" fill="#1d5fd1"> 4</text><text x="298" y="97.70000000000002" fill="#1d5fd1">cima</text><text x="314" y="97.70000000000002">90°</text><text x="326" y="97.70000000000002">L 72</text><text x="352" y="97.70000000000002">X 409.61</text>
+<text x="290" y="102.10000000000002" fill="#1d5fd1"> 5</text><text x="298" y="102.10000000000002" fill="#1d5fd1">cima</text><text x="314" y="102.10000000000002">90°</text><text x="326" y="102.10000000000002">L 364</text><text x="352" y="102.10000000000002">Y 125.15</text>
+<text x="290" y="106.50000000000003" fill="#1d5fd1"> 6</text><text x="298" y="106.50000000000003" fill="#1d5fd1">cima</text><text x="314" y="106.50000000000003">90°</text><text x="326" y="106.50000000000003">L 336</text><text x="352" y="106.50000000000003">Y 141.61</text>
+<text x="290" y="110.90000000000003" fill="#1d5fd1"> 7</text><text x="298" y="110.90000000000003" fill="#1d5fd1">cima</text><text x="314" y="110.90000000000003">90°</text><text x="326" y="110.90000000000003">L 364</text><text x="352" y="110.90000000000003">Y 28.69</text>
+<text x="290" y="115.30000000000004" fill="#1d5fd1"> 8</text><text x="298" y="115.30000000000004" fill="#1d5fd1">cima</text><text x="314" y="115.30000000000004">90°</text><text x="326" y="115.30000000000004">L 336</text><text x="352" y="115.30000000000004">Y 12.23</text>
+<text x="290" y="122.70000000000005" font-weight="600" font-size="3.4">Furos e recortes</text>
+<line x1="290" y1="124.30000000000004" x2="408" y2="124.30000000000004" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="128.70000000000005">1 ×</text><text x="302" y="128.70000000000005">Ø19</text>
+<text x="290" y="133.10000000000005">2 ×</text><text x="302" y="133.10000000000005">Ø5</text>
+<text x="290" y="140.50000000000006" font-weight="600" font-size="3.4">Solda e montagem</text>
+<line x1="290" y1="142.10000000000005" x2="408" y2="142.10000000000005" stroke="#14181d" stroke-width="0.25"/>
+<text x="290" y="146.50000000000006">Fechar os 4 cantos com solda MIG e lixar. As ripas são</text>
+<text x="290" y="150.90000000000006">soldadas por bujão na face de fora.</text>
+<line x1="22" y1="255" x2="34" y2="255" stroke="#14181d" stroke-width="0.45"/><text x="37" y="256">corte (camada CORTE)</text>
+<line x1="92" y1="255" x2="104" y2="255" stroke="#1d5fd1" stroke-width="0.3" stroke-dasharray="2.4 1.2"/><text x="107" y="256" fill="#1d5fd1">dobra para cima</text>
+<line x1="152" y1="255" x2="164" y2="255" stroke="#d1342f" stroke-width="0.3" stroke-dasharray="2.4 1.2"/><text x="167" y="256" fill="#d1342f">dobra para baixo</text>
+<text x="22" y="262" fill="#62666b">Vista do lado da gravação. Medidas em mm. Tolerância geral ±0,3 (corte) e ±0,5 / ±1° (dobra).</text>
+<text x="22" y="267" fill="#62666b">Desenvolvido calculado com fator K 0,42: conferir com a tabela da dobradeira antes do corte em série.</text>
+<rect x="284" y="263" width="130" height="28" fill="#fff" stroke="#14181d" stroke-width="0.4"/>
+<line x1="284" y1="277" x2="414" y2="277" stroke="#14181d" stroke-width="0.25"/>
+<line x1="362" y1="263" x2="362" y2="291" stroke="#14181d" stroke-width="0.25"/>
+<text x="287" y="268" fill="#62666b" font-size="2.6">PROJETO</text><text x="287" y="274" font-size="4" font-weight="600" font-family="Barlow, system-ui, sans-serif">Locker Residencial LR-1020</text>
+<text x="287" y="282" fill="#62666b" font-size="2.6">PEÇA</text><text x="287" y="288" font-size="3.6">Tampa do módulo eletrônico</text>
+<text x="365" y="268" fill="#62666b" font-size="2.6">CÓDIGO</text><text x="365" y="274" font-size="4.2" font-weight="700">LR-031-CHV</text>
+<text x="365" y="282" fill="#62666b" font-size="2.6">ESCALA · REV · MODELO</text><text x="365" y="288" font-size="3.6">1:1.6 · A · A1 A2 A3</text>
+</svg>
