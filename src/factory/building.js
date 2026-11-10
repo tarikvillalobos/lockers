@@ -2,7 +2,7 @@
 // luminárias, portões e o pátio externo.
 import * as THREE from 'three';
 import { M, box, rbox, cyl, beam, bake, shadows, panel, floorTexture, asphaltTexture, wallTexture, ribbedTexture, signTexture } from './kit.js';
-import { B, LANE, LANE_R } from './layout.js';
+import { B, LANE } from './layout.js';
 
 export function buildBuilding(scene, paintFloor) {
   const root = new THREE.Group();
@@ -79,9 +79,8 @@ export function buildBuilding(scene, paintFloor) {
     return m;
   };
   const laneDoor = { x: LANE.x, w: 5.2, h: 5.2 };
-  const laneDoorR = { x: LANE_R.x, w: 5.2, h: 5.2 };
-  scene.add(wallX(B.z0, 1, [laneDoor, laneDoorR]));
-  scene.add(wallX(B.z1, -1, [laneDoor, laneDoorR]));
+  scene.add(wallX(B.z0, 1, [laneDoor]));
+  scene.add(wallX(B.z1, -1, [laneDoor]));
   scene.add(wallZ(B.x0, 1));
   scene.add(wallZ(B.x1, -1));
 
@@ -90,7 +89,7 @@ export function buildBuilding(scene, paintFloor) {
   const colXs = [];
   for (let x = B.x0 + 0.5; x <= B.x1 - 0.4; x += 6) colXs.push(x);
   for (const x of colXs) {
-    const skipBack = Math.abs(x - laneDoor.x) < 2.9 || Math.abs(x - laneDoorR.x) < 2.9;
+    const skipBack = Math.abs(x - laneDoor.x) < 2.9;
     if (!skipBack) root.add(box(colMat, 0.3, B.h, 0.3, x, 0, B.z0 + 0.2));
 
     // proteção amarela/preta no pé das colunas
@@ -201,8 +200,6 @@ export function buildBuilding(scene, paintFloor) {
   const doors = {
     back: mkDoor(laneDoor, B.z0, 1),
     front: mkDoor(laneDoor, B.z1, -1),
-    backR: mkDoor(laneDoorR, B.z0, 1),
-    frontR: mkDoor(laneDoorR, B.z1, -1),
   };
   for (const d of Object.values(doors)) d.setOpen(0);
 
@@ -210,7 +207,7 @@ export function buildBuilding(scene, paintFloor) {
   root.add(box(M.galv, 60, 0.08, 0.4, -2.5, 6.4, B.z0 + 0.5)); // eletrocalha
   root.add(cyl(M.blue, 0.05, 60, -2.5, 5.6, B.z0 + 0.32, 'x', 10)); // ar comprimido
   root.add(cyl(M.galv, 0.07, 60, -2.5, 5.9, B.z0 + 0.34, 'x', 10));
-  for (let x = -24; x < 28; x += 12) {
+  for (const x of [11, 17, 23]) {
     root.add(rbox(M.light, 1.6, 2.1, 0.5, x, 0, B.z0 + 0.62, 0.02)); // painéis elétricos
     root.add(box(M.dark, 0.04, 1.2, 0.02, x - 0.2, 0.5, B.z0 + 0.88));
     root.add(cyl(M.galv, 0.03, 4.3, x, 2.1, B.z0 + 0.5, 'y', 8));
@@ -240,5 +237,5 @@ export function buildBuilding(scene, paintFloor) {
   dome.userData.noAO = true;
   scene.add(dome);
 
-  return { doors, floor, laneDoor, laneDoorR };
+  return { doors, floor, laneDoor };
 }

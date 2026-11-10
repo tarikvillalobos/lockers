@@ -1,7 +1,7 @@
 // Linha de produção, parte 2: descarga da pintura → montagem → teste → embalagem → paletização → expedição.
 import * as THREE from 'three';
 import { M, box, rbox, cyl, lerp, seg, pulse, smooth, shadows } from './kit.js';
-import { POS, ROW_A, ASM_Z, B, LANE, LANE_R, STORE, FG, STATIONS } from './layout.js';
+import { POS, ROW_A, ASM_Z, B, LANE, RAW, FG, PARTS, STATIONS } from './layout.js';
 import { Robot, evalTrack, vacuumTool, gripperTool, screwTool } from './robot.js';
 import { kf } from './line.js';
 import * as EQ from './equipment.js';
@@ -346,19 +346,21 @@ export function buildAsm(ctx) {
   const k13s = [0, 1, 2, 3].map(k13);
 
   // =====================================================================================
-  // Logística: almoxarifado (esquerda), estoque de acabados (direita) e 3 empilhadeiras
+  // Logística: três estoques, dois caminhões no mesmo corredor e as empilhadeiras
   // =====================================================================================
   const HP = Math.PI / 2;
   const onForks = (f, d = 1.32) => [f.x + d * Math.sin(f.yaw), f.fork + 0.03, f.z + d * Math.cos(f.yaw)];
 
-  // ---- almoxarifado: estantes de chapa, porta-paletes de insumos, itens e reposição ----
-  const SR = STORE.sheetRack;
+  // ---- 1) INSUMOS, ao longo da parede dos fundos (frente das estantes voltada para +z) ----
+  const SR = RAW.sheet;
   const LV = [0.3, 1.0, 1.7, 2.4];
   const rack1 = EQ.cantileverRack(LV, [false, false, true, true], 'AÇO 2,0 mm');
   rack1.position.set(SR.x, 0, SR.z);
+  rack1.rotation.y = Math.PI;
   add(rack1);
   const rack2 = EQ.cantileverRack(LV, [0.1, 0.12, 0.08, 0.05], '1,5 mm · GALV.');
-  rack2.position.set(SR.x + 3.9, 0, SR.z);
+  rack2.position.set(RAW.sheet2.x, 0, SR.z);
+  rack2.rotation.y = Math.PI;
   add(rack2);
   const slotY = [LV[1], LV[0]];
   const slotB = slotY.map((y) => {
@@ -367,32 +369,31 @@ export function buildAsm(ctx) {
     b.position.set(SR.x, y, SR.z);
     return b;
   });
-  const pick = (arr, b, li, pos) => ((b * 3 + li * 5 + pos * 2) % 9 === 7 ? null : EQ.load(arr[(b * 2 + pos + li * 3) % arr.length]));
-  const rackOpts = { bays: 3, bayW: 2.4, levels: [0, 1.5, 3.0], depth: 1.1, loadYaw: HP };
-  const pr = (x, ry, kinds) => {
-    const r = EQ.palletRack({ ...rackOpts, fill: (b, li, pos) => pick(kinds, b, li, pos) });
-    r.position.set(x, 0, 8.8);
-    r.rotation.y = ry;
+  const pickLoad = (arr, b, li, pos) => ((b * 3 + li * 5 + pos * 2) % 9 === 7 ? null : EQ.load(arr[(b * 2 + pos + li * 3) % arr.length]));
+  const rawOpts = { bays: 3, bayW: 2.4, levels: [0, 1.5, 3.0], depth: 1.1, loadYaw: HP };
+  [
+    ['drums', 'powder', 'wire', 'powder', 'drums', 'boxes'], // processo: químicos, tinta em pó, arame
+    ['flats', 'film', 'straps', 'flats', 'boxes', 'pallets'], // embalagem
+    ['totes', 'totes', 'boxes', 'totes', 'wire'], // componentes comprados
+  ].forEach((kinds, i) => {
+    const r = EQ.palletRack({ ...rawOpts, fill: (b, li, pos) => pickLoad(kinds, b, li, pos) });
+    r.position.set(RAW.racks[i], 0, RAW.z);
     add(r);
-  };
-  pr(-34.4, HP, ['drums', 'powder', 'wire', 'powder', 'drums', 'boxes']); // insumos de processo
-  pr(-30.62, -HP, ['flats', 'film', 'straps', 'flats', 'boxes', 'pallets']); // embalagem
-  pr(-29.42, HP, ['totes', 'totes', 'boxes', 'totes', 'wire']); // componentes
-  for (const z of [6.5, 9.0, 11.5]) {
-    const sh = EQ.binShelving(2.4, 2.3, 6); // reposição e itens miúdos
-    sh.position.set(-25.75, 0, z);
-    sh.rotation.y = -HP;
+  });
+  for (const x of RAW.shelves) {
+    const sh = EQ.binShelving(2.4, 2.3, 6); // itens de reposição
+    sh.position.set(x, 0, RAW.z - 0.25);
     add(sh);
   }
   const cage = EQ.gasCage();
-  cage.position.set(-34.2, 0, 2.7);
+  cage.position.set(RAW.cage.x, 0, RAW.cage.z);
   add(cage);
   const desk = EQ.receivingDesk();
-  desk.position.set(-35.7, 0, -3.4);
+  desk.position.set(-35.8, 0, -4.0);
   desk.rotation.y = -HP;
   add(desk);
 
-  // ---- caminhão de chapas (corredor da esquerda) + empilhadeira do almoxarifado ----
+  // ---- caminhão de chapas (metade de trás do corredor) + empilhadeira de insumos ----
   const TI = POS.truckIn;
   const trkIn = EQ.truck({ bedL: 5.0, open: 1, flat: true });
   add(trkIn);
@@ -404,136 +405,183 @@ export function buildAsm(ctx) {
   add(fk2.group);
   const bundle = add(EQ.sheetBundle());
   const SX = POS.stack.x;
-  const PKI = { x: -36.0, z: 12.3 };
+  const PKI = { x: -34.4, z: -10.9, yaw: HP };
   const zB = TI.z + bedIn.zc,
     xPick = TI.x + 0.45 + 1.32;
-  const T_GRAB = 3.7,
-    T_STORE = 4.33,
+  // linha do tempo (em ciclos, período de 8): chega 3,2–4,0 · descarrega · sai 7,5–8,3
+  const T_GRAB = 4.22,
+    T_STORE = 4.68,
     T_TAKE = 5.37;
   ctx.sheetDrop = 6.0;
-  // p = paridade do período: num período o fardo que chega vai para um nível e o laser recebe o do outro
+  const zIn = SR.z + 1.32; // empilhadeira com os garfos dentro da estante
+  // p = paridade do período: o fardo que chega vai para um nível e o laser recebe o do outro
   const inKeys = (p) => {
     const yr = slotY[p],
       yf = slotY[1 - p];
-    const zi = SR.z - 1.32;
     return [
-      { t: 3.5, x: PKI.x, z: PKI.z, yaw: 0, fork: 0.11 },
-      { t: 3.6, x: -36.2, z: zB, yaw: -HP, fork: bedIn.y - 0.03 },
-      { t: 3.68, x: xPick, z: zB, yaw: -HP, fork: bedIn.y - 0.03 },
-      { t: 3.72, x: xPick, z: zB, yaw: -HP, fork: bedIn.y + 0.15 },
-      { t: 3.82, x: -36.0, z: zB, yaw: -HP, fork: 0.5 },
-      { t: 3.9, x: -36.0, z: 4.6, yaw: Math.PI, fork: 0.5 },
-      { t: 4.0, x: -36.0, z: 1.2, yaw: Math.PI, fork: 0.5 },
-      { t: 4.08, x: -34.6, z: 0.72, yaw: HP, fork: 0.5 },
-      { t: 4.18, x: SR.x - 0.7, z: 0.72, yaw: HP, fork: yr + 0.12 },
-      { t: 4.24, x: SR.x, z: 0.8, yaw: 0, fork: yr + 0.12 },
-      { t: 4.3, x: SR.x, z: zi, yaw: 0, fork: yr + 0.12 },
-      { t: 4.34, x: SR.x, z: zi, yaw: 0, fork: yr - 0.03 },
-      { t: 4.42, x: SR.x, z: 0.7, yaw: 0, fork: 0.3 },
-      { t: 5.26, x: SR.x, z: 0.7, yaw: 0, fork: yf - 0.03 },
-      { t: 5.34, x: SR.x, z: zi, yaw: 0, fork: yf - 0.03 },
-      { t: 5.38, x: SR.x, z: zi, yaw: 0, fork: yf + 0.12 },
-      { t: 5.48, x: SR.x, z: 0.5, yaw: 0, fork: 0.5 },
-      { t: 5.6, x: SX, z: -0.7, yaw: Math.PI, fork: 0.5 },
-      { t: 5.9, x: SX, z: ROW_A + 1.32, yaw: Math.PI, fork: 0.5 },
-      { t: 6.0, x: SX, z: ROW_A + 1.32, yaw: Math.PI, fork: 0.27 },
-      { t: 6.1, x: SX, z: -3.0, yaw: Math.PI, fork: 0.11 },
-      { t: 6.22, x: -33.4, z: 0.3, yaw: -HP, fork: 0.11 },
-      { t: 6.32, x: -36.0, z: 2.2, yaw: 0, fork: 0.11 },
-      { t: 6.55, x: PKI.x, z: PKI.z, yaw: 0, fork: 0.11 },
+      { t: 4.02, x: PKI.x, z: PKI.z, yaw: PKI.yaw, fork: 0.11 },
+      { t: 4.12, x: -36.2, z: zB, yaw: -HP, fork: bedIn.y - 0.03 },
+      { t: 4.2, x: xPick, z: zB, yaw: -HP, fork: bedIn.y - 0.03 },
+      { t: 4.24, x: xPick, z: zB, yaw: -HP, fork: bedIn.y + 0.15 },
+      { t: 4.34, x: -36.0, z: zB, yaw: -HP, fork: 0.5 },
+      { t: 4.44, x: -34.6, z: -11.2, yaw: HP, fork: 0.5 },
+      { t: 4.54, x: SX - 0.9, z: -11.2, yaw: HP, fork: yr + 0.12 },
+      { t: 4.6, x: SX, z: -11.3, yaw: Math.PI, fork: yr + 0.12 },
+      { t: 4.66, x: SX, z: zIn, yaw: Math.PI, fork: yr + 0.12 },
+      { t: 4.7, x: SX, z: zIn, yaw: Math.PI, fork: yr - 0.03 },
+      { t: 4.78, x: SX, z: -11.3, yaw: Math.PI, fork: 0.3 },
+      { t: 5.26, x: SX, z: -11.3, yaw: Math.PI, fork: yf - 0.03 },
+      { t: 5.34, x: SX, z: zIn, yaw: Math.PI, fork: yf - 0.03 },
+      { t: 5.38, x: SX, z: zIn, yaw: Math.PI, fork: yf + 0.12 },
+      { t: 5.48, x: SX, z: -11.2, yaw: Math.PI, fork: 0.5 },
+      { t: 5.72, x: SX, z: -10.6, yaw: 0, fork: 0.5 },
+      { t: 5.92, x: SX, z: ROW_A - 1.32, yaw: 0, fork: 0.5 },
+      { t: 6.0, x: SX, z: ROW_A - 1.32, yaw: 0, fork: 0.27 },
+      { t: 6.12, x: SX, z: -10.6, yaw: 0, fork: 0.11 },
+      { t: 6.3, x: PKI.x, z: PKI.z, yaw: PKI.yaw, fork: 0.11 },
     ];
   };
   const inK = [inKeys(0), inKeys(1)];
 
-  // ---- estoque de produto acabado (frente-direita): duas fileiras de porta-paletes ----
-  const fgFill = (skip) => (b, li, pos) => (skip(b, li, pos) ? null : EQ.finishedPallet());
+  // ---- 2) ARMÁRIOS EMBALADOS, na frente à esquerda: três fileiras de porta-paletes ----
   const fgOpts = { bays: FG.bays, bayW: (FG.x1 - FG.x0) / FG.bays, levels: [0, 1.5, 3.0], depth: 1.2, loadYaw: HP };
-  const fg1 = EQ.palletRack({ ...fgOpts, fill: fgFill((b, li, pos) => (b === 0 && li === 0) || (b * 5 + li * 3 + pos) % 11 === 4) });
-  fg1.position.set((FG.x0 + FG.x1) / 2, 0, FG.z);
-  add(fg1);
-  const fg2 = EQ.palletRack({ ...fgOpts, fill: fgFill((b, li, pos) => (b * 7 + li * 2 + pos * 3) % 10 === 3) });
-  fg2.position.set((FG.x0 + FG.x1) / 2, 0, FG.z - 1.26);
-  fg2.rotation.y = Math.PI;
-  add(fg2);
+  const fgRack = (z, ry, skip) => {
+    const r = EQ.palletRack({ ...fgOpts, fill: (b, li, pos) => (skip(b, li, pos) ? null : EQ.finishedPallet()) });
+    r.position.set((FG.x0 + FG.x1) / 2, 0, z);
+    r.rotation.y = ry;
+    add(r);
+  };
+  fgRack(FG.rows.north, Math.PI, (b, li, pos) => (b * 5 + li * 3 + pos) % 11 === 4);
+  // fileira do meio: os dois nichos do chão da baia mais próxima da envolvedora são os que giram
+  fgRack(FG.rows.mid, 0, (b, li, pos) => (b === FG.bays - 1 && li === 0) || (b * 7 + li * 2 + pos * 3) % 10 === 3);
+  fgRack(FG.rows.south, Math.PI, (b, li, pos) => (b * 3 + li * 4 + pos * 5) % 9 === 2);
   const fgSlots = FG.slots.map((x) => {
     const pz = mkPallet(true);
-    pz.g.position.set(x, 0, FG.z);
+    pz.g.position.set(x, 0, FG.rows.mid);
     pz.g.rotation.y = HP;
     add(pz.g);
     return pz;
   });
 
-  // ---- empilhadeira 1: da envolvedora para o estoque de acabados ----
+  // ---- empilhadeira de expedição: envolvedora → estoque → caminhão ----
   const fk = EQ.forklift();
   add(fk.group);
-  const PARK = { x: -23.9, z: 12.4, yaw: 0 };
-  const GRAB = 0.08,
-    DROP = 1.39;
-  const fkKeys = (q) => {
-    const sx = FG.slots[q];
-    const wx = PL.x - 1.32;
-    return [
-      { t: 0.0, x: wx, z: PL.z, yaw: HP, fork: 0.11 },
-      { t: 0.06, x: wx, z: PL.z, yaw: HP, fork: 0.11 },
-      { t: 0.1, x: wx, z: PL.z, yaw: HP, fork: 0.36 },
-      { t: 0.2, x: -23.9, z: PL.z, yaw: HP, fork: 0.36 },
-      { t: 0.3, x: -23.9, z: 12.3, yaw: 0, fork: 0.36 },
-      { t: 0.4, x: -22.8, z: FG.aisle, yaw: HP, fork: 0.36 },
-      { t: 1.18, x: sx - 1.3, z: FG.aisle, yaw: HP, fork: 0.36 },
-      { t: 1.28, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.36 },
-      { t: 1.36, x: sx, z: FG.z + 1.32, yaw: Math.PI, fork: 0.36 },
-      { t: 1.4, x: sx, z: FG.z + 1.32, yaw: Math.PI, fork: 0.0 },
-      { t: 1.48, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.11 },
-      { t: 1.58, x: sx - 1.1, z: FG.aisle, yaw: -HP, fork: 0.11 },
-      { t: 2.4, x: -22.6, z: FG.aisle, yaw: -HP, fork: 0.11 },
-      { t: 2.54, x: PARK.x, z: PARK.z, yaw: PARK.yaw, fork: 0.11 },
-      { t: 3.72, x: PARK.x, z: PARK.z, yaw: PARK.yaw, fork: 0.11 },
-      { t: 3.86, x: PL.x - 3.4, z: PL.z, yaw: HP, fork: 0.11 },
-      { t: 4.0, x: wx, z: PL.z, yaw: HP, fork: 0.11 },
-    ];
-  };
-  const fkK = [fkKeys(0), fkKeys(1)];
-
-  // ---- caminhão de expedição (corredor da direita) + empilhadeira 3 ----
   const TO = POS.truckOut;
-  const trk = EQ.truck({ open: -1 });
+  const trk = EQ.truck({ open: 1 });
   add(trk);
   const bed = trk.userData.bed;
   const onTruck = [0.8, -0.8].map((dz) => {
     const pz = mkPallet(true);
-    pz.g.position.set(-0.6, bed.y, bed.zc + dz);
+    pz.g.position.set(0.6, bed.y, bed.zc + dz);
     trk.add(pz.g);
     pz.g.visible = false;
     return pz;
   });
-  const fk3 = EQ.forklift();
-  add(fk3.group);
-  const ship2 = mkPallet(true);
-  add(ship2.g);
-  const xT = TO.x - 0.6 - 1.32;
+  const xT = TO.x + 0.6 + 1.32;
   const zT = [TO.z + bed.zc + 0.8, TO.z + bed.zc - 0.8];
-  const PK3 = { x: 29.2, z: 13.0 };
-  // cada viagem: vai ao nicho, pega o palete (t0 + 0,48) e solta na carroceria (t0 + 1,10)
-  const TRIPS = [5.45, 6.62];
-  const T_G = TRIPS.map((t) => t + 0.48),
-    T_D = TRIPS.map((t) => t + 1.1);
-  const trip = (t0, sx, zt, first) => [
-    ...(first ? [{ t: t0, x: PK3.x, z: PK3.z, yaw: -HP, fork: 0.11 }] : []),
-    { t: t0 + 0.1, x: 28.0, z: FG.aisle, yaw: -HP, fork: 0.11 },
-    { t: t0 + 0.36, x: sx + 1.1, z: FG.aisle, yaw: -HP, fork: 0.11 },
-    { t: t0 + 0.41, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.0 },
-    { t: t0 + 0.45, x: sx, z: FG.z + 1.32, yaw: Math.PI, fork: 0.0 },
-    { t: t0 + 0.49, x: sx, z: FG.z + 1.32, yaw: Math.PI, fork: 0.36 },
-    { t: t0 + 0.55, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.36 },
-    { t: t0 + 0.61, x: sx + 1.1, z: FG.aisle, yaw: HP, fork: 0.36 },
-    { t: t0 + 0.88, x: 29.0, z: FG.aisle, yaw: HP, fork: 0.36 },
-    { t: t0 + 0.94, x: 29.4, z: 12.4, yaw: Math.PI, fork: 0.5 },
-    { t: t0 + 1.0, x: 30.0, z: zt, yaw: HP, fork: bed.y + 0.1 },
-    { t: t0 + 1.07, x: xT, z: zt, yaw: HP, fork: bed.y + 0.1 },
-    { t: t0 + 1.11, x: xT, z: zt, yaw: HP, fork: bed.y - 0.03 },
-    { t: t0 + 1.17, x: 30.2, z: zt, yaw: HP, fork: 0.3 },
+  const PARK = { x: -23.9, z: 12.4, yaw: 0 };
+  const zS = FG.rows.mid + 1.32; // empilhadeira com os garfos dentro do nicho
+  const wx = PL.x - 1.32;
+  // guarda o palete q no nicho (t0 = começo do período de 4 ciclos)
+  const storeTrip = (t0, sx) => [
+    { t: t0, x: wx, z: PL.z, yaw: HP, fork: 0.11 },
+    { t: t0 + 0.06, x: wx, z: PL.z, yaw: HP, fork: 0.11 },
+    { t: t0 + 0.1, x: wx, z: PL.z, yaw: HP, fork: 0.36 },
+    { t: t0 + 0.3, x: sx + 0.4, z: FG.aisle, yaw: HP, fork: 0.36 },
+    { t: t0 + 0.38, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.36 },
+    { t: t0 + 0.45, x: sx, z: zS, yaw: Math.PI, fork: 0.36 },
+    { t: t0 + 0.49, x: sx, z: zS, yaw: Math.PI, fork: 0.0 },
+    { t: t0 + 0.56, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.11 },
   ];
-  const fk3Keys = [...trip(TRIPS[0], FG.slots[0], zT[0], true), ...trip(TRIPS[1], FG.slots[1], zT[1], false), { t: 7.96, x: PK3.x, z: PK3.z, yaw: -HP, fork: 0.11 }];
+  // leva o palete do nicho para a carroceria
+  const loadTrip = (t0, sx, zt) => [
+    { t: t0, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.0 },
+    { t: t0 + 0.07, x: sx, z: zS, yaw: Math.PI, fork: 0.0 },
+    { t: t0 + 0.11, x: sx, z: zS, yaw: Math.PI, fork: 0.36 },
+    { t: t0 + 0.18, x: sx, z: FG.aisle, yaw: Math.PI, fork: 0.36 },
+    { t: t0 + 0.26, x: sx - 1.0, z: zt, yaw: -HP, fork: 0.5 },
+    { t: t0 + 0.5, x: xT + 0.9, z: zt, yaw: -HP, fork: bed.y + 0.1 },
+    { t: t0 + 0.56, x: xT, z: zt, yaw: -HP, fork: bed.y + 0.1 },
+    { t: t0 + 0.6, x: xT, z: zt, yaw: -HP, fork: bed.y - 0.03 },
+    { t: t0 + 0.68, x: xT + 2.0, z: zt, yaw: -HP, fork: 0.3 },
+  ];
+  const T_L = [4.9, 5.7]; // início de cada viagem de carga
+  const GRAB = 0.08,
+    T_S = [0.48, 4.48], // palete entra no nicho
+    T_G = T_L.map((t) => t + 0.1), // sai do nicho
+    T_D = T_L.map((t) => t + 0.59); // pousa na carroceria
+  const park = (t) => ({ t, x: PARK.x, z: PARK.z, yaw: PARK.yaw, fork: 0.11 });
+  const fkKeys = [
+    ...storeTrip(0, FG.slots[0]),
+    park(0.8),
+    park(3.72),
+    { t: 3.86, x: PL.x - 3.4, z: PL.z, yaw: HP, fork: 0.11 },
+    ...storeTrip(4.0, FG.slots[1]),
+    { t: 4.78, x: FG.slots[0], z: FG.aisle, yaw: Math.PI, fork: 0.0 },
+    ...loadTrip(T_L[0], FG.slots[0], zT[0]),
+    { t: 5.68, x: FG.slots[1] - 0.6, z: FG.aisle, yaw: HP, fork: 0.0 },
+    ...loadTrip(T_L[1], FG.slots[1], zT[1]),
+    { t: 6.6, x: -30.0, z: FG.aisle, yaw: HP, fork: 0.11 },
+    park(6.85),
+    park(7.72),
+    { t: 7.86, x: PL.x - 3.4, z: PL.z, yaw: HP, fork: 0.11 },
+    { t: 8.0, x: wx, z: PL.z, yaw: HP, fork: 0.11 },
+  ];
+
+  // ---- 3) PEÇAS ACABADAS, na frente à direita: reposição para a montagem ----
+  const paintGray = ctx.paintMat();
+  ctx.setPaint(paintGray, 1e9);
+  const capMat = new THREE.MeshPhysicalMaterial({ color: '#24282b', roughness: 0.65, metalness: 0.15 });
+  const centered = (name) => {
+    const g = A.single(name);
+    g.computeBoundingBox();
+    const bb = g.boundingBox;
+    g.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2);
+    g.computeBoundingBox();
+    return g;
+  };
+  const PG = { doorF: centered('doorF'), doorB: centered('doorB'), hatch: centered('hatch'), shell: centered('shell'), base: centered('base'), top: centered('top'), mech: centered('mech') };
+  const mk = (geo, mat, x, y, z, rx = 0, ry = 0) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.rotation.set(rx, ry, 0);
+    return m;
+  };
+  const partLoad = (kind) => {
+    const g = new THREE.Group();
+    g.add(EQ.woodPallet());
+    const y0 = 0.134;
+    if (kind === 'doorF' || kind === 'doorB') {
+      // portas em pé, lado a lado, num berço
+      for (let i = 0; i < 9; i++) g.add(mk(PG[kind], paintGray, -0.3, y0 + 0.03, -0.36 + i * 0.09));
+      for (let i = 0; i < 9; i++) g.add(mk(PG[kind], paintGray, 0.3, y0 + 0.03, -0.36 + i * 0.09));
+      for (const z of [-0.45, 0.45]) g.add(mk(new THREE.BoxGeometry(1.1, 0.5, 0.03), M.blue, 0, y0 + 0.25, z));
+    } else if (kind === 'hatch') {
+      for (let k = 0; k < 4; k++) for (let i = 0; i < 9; i++) g.add(mk(PG.hatch, paintGray, k % 2 ? 0.3 : -0.3, y0 + 0.02 + Math.floor(k / 2) * 0.14, -0.36 + i * 0.09));
+    } else if (kind === 'shell') {
+      for (const x of [-0.27, 0.27]) g.add(mk(PG.shell, paintGray, x, y0, 0));
+    } else if (kind === 'base' || kind === 'top') {
+      for (let i = 0; i < 18; i++) for (const x of [-0.3, 0.3]) g.add(mk(PG[kind], capMat, x, y0 + i * 0.0215, 0, 0, HP));
+    } else if (kind === 'mech') {
+      for (const [x, z] of [[-0.3, -0.22], [0.3, -0.22], [-0.3, 0.24], [0.3, 0.24]]) g.add(mk(PG.mech, M.galv, x, y0, z));
+    }
+    return g;
+  };
+  const partKinds = ['doorF', 'shell', 'base', 'mech', 'doorB', 'top', 'hatch', 'shell', 'doorF', 'mech'];
+  const pOpts = { bays: PARTS.bays, bayW: (PARTS.x1 - PARTS.x0) / PARTS.bays, levels: [0, 1.5, 3.0], depth: 1.2, loadYaw: HP };
+  const pRack = (z, ry, off) => {
+    const r = EQ.palletRack({ ...pOpts, fill: (b, li, pos) => ((b * 5 + li * 3 + pos + off) % 12 === 4 ? null : partLoad(partKinds[(b * 2 + pos + li * 3 + off) % partKinds.length])) });
+    r.position.set((PARTS.x0 + PARTS.x1) / 2, 0, z);
+    r.rotation.y = ry;
+    add(r);
+  };
+  pRack(PARTS.z, 0, 0);
+  pRack(PARTS.z - 1.26, Math.PI, 3);
+  // empilhadeira de reposição, estacionada ao lado do estoque de peças
+  const fk3 = EQ.forklift();
+  fk3.group.position.set(28.6, 0, 9.4);
+  fk3.group.rotation.y = -HP;
+  add(fk3.group);
 
   // ---- adereços ----
   const sign = (title, sub, x, z, color) => {
@@ -542,9 +590,11 @@ export function buildAsm(ctx) {
     add(sg);
   };
   STATIONS.forEach((st, i) => {
-    const pos = [[-30.2, 8.8], [-22, -3.2], [-13, -2.6], [-4.2, -3.4], [13, -3.6], [-1.0, 12.6], [-9.8, 12.6], [-16.2, 12.6], [19.6, 9.2]][i];
+    const pos = [[-27.5, -11.6], [-22, -3.2], [-13.6, -2.4], [-4.2, -3.4], [13, -3.6], [-1.0, 12.6], [-9.8, 12.6], [-16.2, 12.6], [-30.0, 9.3]][i];
     sign(`${st.n} ${st.name.toUpperCase()}`, 'LINHA LR-1020', pos[0], pos[1], i >= 5 ? '#16335f' : '#1f4fa3');
   });
+  sign('ESTOQUE DE PEÇAS ACABADAS', 'PORTAS · CARCAÇAS · BASES · MECANISMOS', 19.6, 9.0, '#1f6f55');
+  sign('ARMÁRIOS EMBALADOS', 'PRODUTO ACABADO', -30.0, 3.6, '#16335f');
   const fences = [
     // célula de solda
     [[-7.4, -3.2], [-0.6, -3.2]],
@@ -555,12 +605,12 @@ export function buildAsm(ctx) {
     [[-16.6, 7.4], [-18.4, 7.4]],
   ];
   for (const f of fences) add(EQ.fenceRun(f));
-  for (const [x, z] of [[-37.0, 3.2], [-37.0, 9.6], [-36.6, -6], [31.5, 7.4], [31.5, 13.0], [28.6, 7.4]]) {
+  for (const [x, z] of [[-37.0, 3.0], [-37.0, 13.2], [-36.9, -4.6], [-36.9, -12.6], [-23.0, 13.6]]) {
     const c = EQ.cone();
     c.position.set(x, 0, z);
     add(c);
   }
-  for (const [x, z, ry] of [[8.5, 12.9, 0], [-8.5, 12.9, 0], [-13.0, 5.6, Math.PI], [-9.0, -2.9, 0]]) {
+  for (const [x, z, ry] of [[8.5, 12.9, 0], [-8.5, 12.9, 0], [-13.0, 5.6, Math.PI]]) {
     const c = EQ.toolCabinet();
     c.position.set(x, 0, z);
     c.rotation.y = ry;
@@ -689,58 +739,47 @@ export function buildAsm(ctx) {
     wr.table.rotation.y = spin * Math.PI * 6;
     wr.car.position.y = 0.5 + 1.1 * spin * (1 - seg(tau4, 3.96, 4.0));
 
-    // ---- empilhadeira 1: envolvedora → estoque de acabados ----
-    const q = (((Math.floor(cycle / 4) % 2) + 2) % 2);
+    // ---- empilhadeira de expedição: guarda cada palete no estoque e depois carrega o caminhão ----
     const tau8 = c.tau8;
-    const f = drive(fkK[q], tau4);
+    const f = drive(fkKeys, tau8);
     fk.group.position.set(f.x, 0, f.z);
     fk.group.rotation.y = f.yaw;
     fk.forks.position.y = f.fork;
-    const carrying = tau4 < DROP;
-    shipping.g.visible = carrying;
-    if (tau4 < GRAB) place(shipping.g, [PL.x, TT, PL.z]);
-    else place(shipping.g, onForks(f), f.yaw - HP);
-    // nichos do estoque: o palete fica ali até a empilhadeira 3 levar para o caminhão
-    fgSlots[0].g.visible = tau8 >= DROP && tau8 < T_G[0];
-    fgSlots[1].g.visible = tau8 >= 4 + DROP && tau8 < T_G[1];
+    // o palete da envolvedora: parado até a pega, depois nos garfos até entrar no nicho
+    const store = tau4 < 0.48;
+    const load = (tau8 >= T_G[0] && tau8 < T_D[0]) || (tau8 >= T_G[1] && tau8 < T_D[1]);
+    shipping.g.visible = store || load;
+    if (store && tau4 < GRAB) place(shipping.g, [PL.x, TT, PL.z]);
+    else if (store || load) place(shipping.g, onForks(f), f.yaw - HP);
+    fgSlots[0].g.visible = tau8 >= T_S[0] && tau8 < T_G[0];
+    fgSlots[1].g.visible = tau8 >= T_S[1] && tau8 < T_G[1];
 
-    // ---- empilhadeira 3: estoque de acabados → caminhão ----
-    const f3 = drive(fk3Keys, tau8);
-    fk3.group.position.set(f3.x, 0, f3.z);
-    fk3.group.rotation.y = f3.yaw;
-    fk3.forks.position.y = f3.fork;
-    const c3 = (tau8 >= T_G[0] && tau8 < T_D[0]) || (tau8 >= T_G[1] && tau8 < T_D[1]);
-    ship2.g.visible = c3;
-    if (c3) place(ship2.g, onForks(f3), f3.yaw - HP);
-
-    // ---- caminhão de expedição: chega (4,0–4,8), recebe 2 paletes, sai (7,8–8,6) ----
-    const tr = (tau8 - 7.8 + 8) % 8; // 0 = começa a sair
+    // ---- caminhão de expedição: chega (2,2–3,0), recebe 2 paletes, sai (6,6–7,4) ----
     let oz = TO.z,
       ovis = true;
-    if (tr < 0.8) oz = TO.z + 62 * Math.pow(tr / 0.8, 2);
-    else if (tr < 4.2) ovis = false;
-    else if (tr < 5.0) oz = TO.z - 46 * Math.pow(1 - (tr - 4.2) / 0.8, 2);
+    if (tau8 >= 6.6 && tau8 < 7.4) oz = TO.z + 62 * Math.pow((tau8 - 6.6) / 0.8, 2);
+    else if (tau8 >= 7.4 || tau8 < 2.2) ovis = false;
+    else if (tau8 < 3.0) oz = TO.z - 46 * Math.pow(1 - (tau8 - 2.2) / 0.8, 2);
     trk.visible = ovis;
     trk.position.set(TO.x, 0, oz);
-    const loaded = (td) => ovis && (tau8 >= td || tr < 0.8);
-    onTruck[0].g.visible = loaded(T_D[0]);
-    onTruck[1].g.visible = loaded(T_D[1]);
-    doorsB.frontR.setOpen(pulse((tr + 0.3) % 8, 0.05, 0.3, 1.15, 1.4));
-    doorsB.backR.setOpen(pulse(tr, 3.95, 4.2, 4.95, 5.25));
+    onTruck[0].g.visible = ovis && tau8 >= T_D[0];
+    onTruck[1].g.visible = ovis && tau8 >= T_D[1];
 
-    // ---- caminhão de chapas: sai vazio (1,2–2,0) e volta carregado (2,6–3,4) ----
+    // ---- caminhão de chapas: chega carregado (3,2–4,0) e sai vazio (7,5–8,3) ----
+    const ti = (tau8 - 7.5 + 8) % 8; // 0 = começa a sair
     let iz = TI.z,
       ivis = true;
-    if (tau8 >= 1.2 && tau8 < 2.0) iz = TI.z + 62 * Math.pow((tau8 - 1.2) / 0.8, 2);
-    else if (tau8 >= 2.0 && tau8 < 2.6) ivis = false;
-    else if (tau8 >= 2.6 && tau8 < 3.4) iz = TI.z - 46 * Math.pow(1 - (tau8 - 2.6) / 0.8, 2);
+    if (ti < 0.8) iz = TI.z + 62 * Math.pow(ti / 0.8, 2);
+    else if (ti < 3.7) ivis = false;
+    else if (ti < 4.5) iz = TI.z - 30 * Math.pow(1 - (ti - 3.7) / 0.8, 2);
     trkIn.visible = ivis;
     trkIn.position.set(TI.x, 0, iz);
-    truckBundle.visible = tau8 >= 2.6 && tau8 < T_GRAB;
-    doorsB.front.setOpen(pulse(tau8, 0.95, 1.2, 2.05, 2.3));
-    doorsB.back.setOpen(pulse(tau8, 2.35, 2.6, 3.3, 3.6));
+    truckBundle.visible = tau8 >= 3.2 && tau8 < T_GRAB;
+    // portões: o de trás abre para as duas chegadas; o da frente, para as duas saídas
+    doorsB.back.setOpen(pulse(tau8, 1.95, 2.2, 4.0, 4.3));
+    doorsB.front.setOpen(pulse((tau8 + 2) % 8, 0.35, 0.6, 2.45, 2.7));
 
-    // ---- empilhadeira 2: caminhão → estante de chapas → laser ----
+    // ---- empilhadeira de insumos: caminhão → estante de chapas → laser ----
     const par = (((Math.floor(cycle / 8) % 2) + 2) % 2);
     const f2 = drive(inK[par], tau8);
     fk2.group.position.set(f2.x, 0, f2.z);
@@ -756,7 +795,6 @@ export function buildAsm(ctx) {
   void cyl;
   void B;
   void LANE;
-  void LANE_R;
   void screwTool;
 }
 
@@ -787,63 +825,51 @@ export function paintFloor(x) {
     }
     x.restore();
   };
-  // corredores de caminhões (esquerda: recebimento; direita: expedição)
-  for (const L of [LANE, LANE_R]) {
-    x.fillStyle = 'rgba(70,74,78,0.5)';
-    x.fillRect(L.x - L.w / 2, B.z0, L.w, B.z1 - B.z0);
-    x.fillStyle = yellow;
-    for (const sx of [-1, 1]) x.fillRect(L.x + (sx * L.w) / 2 - 0.07, B.z0, 0.14, B.z1 - B.z0);
-    x.fillStyle = white;
-    for (let z = B.z0 + 1; z < B.z1; z += 3) x.fillRect(L.x - 0.06, z, 0.12, 1.5);
-  }
-  hatch(LANE.x + LANE.w / 2 + 0.1, 3.4, LANE.x + LANE.w / 2 + 1.0, 8.8); // descarga
-  hatch(LANE_R.x - LANE_R.w / 2 - 1.5, 8.4, LANE_R.x - LANE_R.w / 2 - 0.1, 12.4); // carga
-  // corredor de empilhadeira ao longo da frente
-  x.fillStyle = 'rgba(86,90,95,0.42)';
-  x.fillRect(-26.4, 13.42, 57.9, 1.3);
+  // corredor de caminhões: descarga atrás, carga na frente
+  x.fillStyle = 'rgba(70,74,78,0.5)';
+  x.fillRect(LANE.x - LANE.w / 2, B.z0, LANE.w, B.z1 - B.z0);
   x.fillStyle = yellow;
-  x.fillRect(-26.4, 13.38, 57.9, 0.09);
-  x.fillRect(-26.4, 14.68, 57.9, 0.09);
+  for (const sx of [-1, 1]) x.fillRect(LANE.x + (sx * LANE.w) / 2 - 0.07, B.z0, 0.14, B.z1 - B.z0);
   x.fillStyle = white;
-  for (let ax = -22; ax < 30; ax += 8) {
-    x.beginPath();
-    x.moveTo(ax, 13.95);
-    x.lineTo(ax + 1.1, 13.95);
-    x.lineTo(ax + 1.1, 13.78);
-    x.lineTo(ax + 1.6, 14.07);
-    x.lineTo(ax + 1.1, 14.36);
-    x.lineTo(ax + 1.1, 14.19);
-    x.lineTo(ax, 14.19);
-    x.fill();
-  }
+  for (let z = B.z0 + 1; z < B.z1; z += 3) x.fillRect(LANE.x - 0.06, z, 0.12, 1.5);
+  hatch(LANE.x + LANE.w / 2 + 0.1, -11.2, LANE.x + LANE.w / 2 + 1.0, -6.8); // descarga
+  hatch(LANE.x + LANE.w / 2 + 0.1, 6.8, LANE.x + LANE.w / 2 + 1.0, 10.4); // carga
+  // corredor de empilhadeira em frente às estantes de insumos (parede dos fundos)
+  x.fillStyle = 'rgba(86,90,95,0.42)';
+  x.fillRect(-36.4, -13.45, 45.2, 2.5);
+  x.fillStyle = yellow;
+  x.fillRect(-36.4, -13.5, 45.2, 0.09);
+  x.fillRect(-36.4, -10.99, 45.2, 0.09);
   // faixas de pedestre
   const walk = (x0, z0, x1, z1) => {
     x.fillStyle = green;
     x.fillRect(x0, z0, x1 - x0, z1 - z0);
     rect(x0, z0, x1, z1, yellow, 0.08);
   };
-  walk(-36.4, -12.6, -35.4, -1.2);
-  walk(27.4, -12.6, 28.4, 6.6);
-  walk(-24.0, -0.4, -0.6, 0.6);
-  // zonas de máquina
+  walk(-23.6, 13.6, 28.4, 14.6);
+  walk(27.4, -10.4, 28.4, 14.6);
+  walk(-23.6, -0.4, -0.6, 0.6);
+  // zonas
   const zone = (x0, z0, x1, z1) => rect(x0, z0, x1, z1, yellow, 0.1);
-  zone(STORE.x0, STORE.z0, STORE.x1, STORE.z1); // almoxarifado
+  zone(FG.x0 - 0.4, 1.3, FG.x1 + 0.6, 12.8); // armários embalados
   zone(-32.6, -9.2, -24.2, -5.0); // pórtico de chapas
   zone(-24.0, -9.4, -15.8, -5.2); // laser
-  zone(-19.9, -5.9, -10.6, -3.9); // trilho do robô
+  zone(-19.9, -5.9, -10.6, -3.9); // trilho dos robôs
+  zone(-15.8, -8.3, -14.2, -5.7); // mesa de recortes
   zone(-14.6, -9.9, -10.0, -6.0); // dobradeira
-  zone(-7.4, -10.3, -0.6, -3.2); // solda
+  zone(-12.6, -3.6, -6.6, -0.7); // solda dos conjuntos
+  zone(-7.4, -10.3, -0.6, -3.2); // solda da carcaça
   zone(1.0, -9.6, 27.6, -5.0); // pintura (fileira de trás)
   zone(23.6, -5.0, 28.0, 4.0); // estufa
   zone(1.6, 3.2, 23.0, 6.0); // resfriamento
   zone(-18.6, 6.2, 9.2, 12.4); // montagem
   zone(-23.0, 7.4, -18.8, 13.2); // paletização
-  zone(FG.x0 - 0.5, 7.4, FG.x1 + 0.5, 13.0); // estoque de acabados
+  zone(PARTS.x0 - 0.5, 7.4, PARTS.x1 + 0.5, 13.0); // peças acabadas
   hatch(-23.0, 8.6, -22.0, 10.6);
   // vagas das empilhadeiras
-  rect(-36.8, 11.3, -35.2, 13.4, white, 0.08);
+  rect(-35.4, -11.7, -33.4, -10.1, white, 0.08);
   rect(-24.7, 11.3, -23.1, 13.3, white, 0.08);
-  rect(28.2, 12.2, 30.2, 13.3, white, 0.08);
+  rect(27.6, 8.6, 29.6, 10.2, white, 0.08);
   // numeração dos postos
   x.fillStyle = 'rgba(255,255,255,0.92)';
   x.textBaseline = 'middle';
@@ -853,13 +879,14 @@ export function paintFloor(x) {
     x.font = `600 ${size * 0.36}px Barlow, Arial, sans-serif`;
     x.fillText(name, px + size * 1.25, pz + size * 0.06);
   };
-  label('01', 'ALMOXARIFADO', -34.9, 0.55, 0.9);
+  label('01', 'INSUMOS', -34.6, -9.9, 0.9);
   label('02', 'LASER', -23.8, -4.4);
-  label('03', 'DOBRA', -14.4, -2.9);
-  label('04', 'SOLDA', -7.2, -2.5);
+  label('03', 'DOBRA', -16.8, -2.9);
+  label('04', 'SOLDA', -6.4, -2.4);
   label('05', 'PINTURA', 3.0, -4.2);
   label('06', 'MONTAGEM', 1.6, 12.95, 0.8);
   label('07', 'TESTE', -10.8, 12.95, 0.8);
   label('08', 'EMBALAGEM', -15.2, 12.95, 0.8);
-  label('09', 'ESTOQUE E EXPEDIÇÃO', 12.0, 8.1, 0.9);
+  label('09', 'EXPEDIÇÃO', -34.8, 0.6, 0.9);
+  label('', 'ESTOQUE DE PEÇAS ACABADAS', 10.6, 13.25, 0.8);
 }

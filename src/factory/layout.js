@@ -4,16 +4,19 @@
 
 export const TAKT = 24; // segundos de simulação por armário (1×)
 
-export const B = { x0: -43, x1: 38, z0: -15, z1: 15, h: 9.6 };
-// Dois corredores de caminhões (entram pelos fundos, saem pela frente):
-// à esquerda chegam as chapas e os insumos; à direita saem os armários prontos.
+export const B = { x0: -43, x1: 30, z0: -15, z1: 15, h: 9.6 };
+// Corredor de caminhões (entram pelos fundos, saem pela frente): nos fundos descarrega o caminhão de
+// chapas e insumos; na frente carrega o caminhão de expedição.
 export const LANE = { x: -39.5, w: 5 };
-export const LANE_R = { x: 34.2, w: 5 };
-// Almoxarifado (frente-esquerda) e estoque de produto acabado (frente-direita)
-export const STORE = { x0: -35.2, x1: -24.4, z0: 1.3, z1: 12.8, sheetRack: { x: -30.85, z: 3.05 } };
-export const FG = { x0: 11.6, x1: 27.6, z: 11.9, bays: 6, slots: [12.273, 13.593], aisle: 14.05 };
 export const ROW_A = -7;
 export const ASM_Z = 9.2;
+// Três estoques:
+//  RAW   insumos e chapas, ao longo da parede dos fundos
+//  FG    armários embalados (paletes), na frente à esquerda, ao lado da expedição
+//  PARTS peças acabadas (portas, carcaças, bases…), na frente à direita, ao lado da montagem
+export const RAW = { z: -14.15, sheet: { x: -30.6, z: -13.75 }, sheet2: { x: -26.6 }, racks: [-20.6, -13.2, -5.8], shelves: [1.6, 4.2, 6.8], cage: { x: -35.3, z: -13.9 } };
+export const FG = { x0: -34.8, x1: -25.2, bays: 4, rows: { north: 11.9, mid: 6.6, south: 5.34 }, slots: [-27.06, -25.74], aisle: 9.45 };
+export const PARTS = { x0: 11.6, x1: 27.6, bays: 6, z: 11.9 };
 
 export const POS = {
   stack: { x: -30.6, z: ROW_A },
@@ -31,8 +34,10 @@ export const POS = {
   asm: { x: [4.6, 1.0, -2.6, -6.2, -9.8, -13.4, -17.0], z: ASM_Z, h: 0.42 },
   pallet: { x: -20.4, z: 9.6 },
   r13: { x: -18.7, z: 11.3 },
-  truckIn: { x: LANE.x, z: 6.6 }, // caminhão de chapas e insumos
-  truckOut: { x: LANE_R.x, z: 10.3 }, // caminhão de expedição
+  truckIn: { x: LANE.x, z: -8.5 }, // caminhão de chapas e insumos (metade de trás do corredor)
+  truckOut: { x: LANE.x, z: 8.6 }, // caminhão de expedição (metade da frente)
+  table: { x: -15.0, z: ROW_A, h: 0.86, zSort: -6.45, zPick: -7.55 }, // mesa de recortes
+  weld2: { x: -10.2, z: -2.2, h: 0.8 }, // célula de solda dos conjuntos
 };
 
 // Trilho aéreo da pintura: retângulo de cantos arredondados, percorrido no sentido
@@ -84,10 +89,10 @@ export const STATIONS = [
   {
     id: 'almoxarifado',
     n: '01',
-    name: 'Recebimento e almoxarifado',
-    text: 'Chapas, tinta, arame de solda, gases, embalagens e componentes chegam pelo corredor da esquerda e vão para as estantes. É do estoque que a empilhadeira leva a chapa para o laser, um fardo a cada 8 armários.',
+    name: 'Recebimento e insumos',
+    text: 'O estoque de insumos fica ao longo da parede dos fundos: chapas por espessura, tinta em pó, arame de solda, gases, químicos, embalagens, componentes e itens de reposição. A empilhadeira guarda o fardo que chega e é do estoque que sai a chapa para o laser.',
     specs: [['Chapas', 'estante cantilever · 4 espessuras'], ['Insumos', 'tinta, arame, gases, químicos'], ['Itens', 'componentes e reposição']],
-    cam: { p: [-21.5, 6.4, 1.2], t: [-31.2, 1.5, 7.2] },
+    cam: { p: [-23.2, 6.0, -8.6], t: [-31.0, 1.4, -13.6] },
   },
   {
     id: 'laser',
@@ -101,25 +106,25 @@ export const STATIONS = [
     id: 'dobra',
     n: '03',
     name: 'Dobra CNC',
-    text: 'O robô posiciona cada recorte na dobradeira. As abas de fora são dobradas primeiro; depois, as da raiz. São 90 dobras por armário.',
-    specs: [['Dobradeira', '110 t · 3 m'], ['Raio interno', '2 mm (K 0,42)'], ['Dobras', '90 / armário']],
-    cam: { p: [-14.9, 2.5, -4.2], t: [-12.4, 1.0, -7.1] },
+    text: 'Um robô separa os recortes do laser na mesa e o robô da dobradeira dobra todas as peças do armário em sequência: laterais, fundo, travessas, base, tampo, portas, ripas, basculante e bandeja. As peças com abas para baixo são viradas antes da dobra.',
+    specs: [['Dobradeira', '110 t · 3 m'], ['Peças dobradas', '17 tipos · 39 por armário'], ['Dobras', '90 / armário']],
+    cam: { p: [-15.6, 2.9, -3.6], t: [-13.0, 1.0, -7.1] },
   },
   {
     id: 'solda',
     n: '04',
-    name: 'Solda da carcaça',
-    text: 'No gabarito, um robô monta as laterais, o fundo, as travessas e a rampa enquanto dois robôs MIG soldam as abas contra os montantes.',
-    specs: [['Processo', 'MIG robotizado'], ['Peças', '7 na carcaça'], ['Robôs', '1 manipulador + 2 solda']],
-    cam: { p: [-7.0, 4.3, -0.6], t: [-4.0, 1.0, -7.2] },
+    name: 'Solda',
+    text: 'Duas células. Na da carcaça, um robô monta as laterais, o fundo, as travessas e a rampa no gabarito e dois robôs MIG soldam. Na dos conjuntos, são soldados em sequência as portas com as ripas, a tampa, a base, o tampo, o basculante e a bandeja.',
+    specs: [['Processo', 'MIG robotizado'], ['Carcaça', '7 peças + 3 ripas'], ['Conjuntos', '7 em sequência']],
+    cam: { p: [-9.6, 4.6, 2.4], t: [-6.6, 1.0, -5.0] },
   },
   {
     id: 'pintura',
     n: '05',
     name: 'Pintura eletrostática',
-    text: 'A carcaça e as portas seguem no trilho aéreo: lavagem e fosfatização, cabine de pó com pistolas eletrostáticas e estufa de cura.',
-    specs: [['Pó', 'poliéster RAL 7016'], ['Cura', '200 °C · 10 min'], ['Trilho', '71 m · 60 ganchos']],
-    cam: { p: [9.2, 5.4, 2.6], t: [16.4, 2.0, -7.0] },
+    text: 'No trilho aéreo as peças passam pela lavagem em 3 estágios, secam na estufa de secagem, recebem o pó na cabine (as pistolas só disparam com peça na frente), curam a 200 °C e esfriam antes da medição de camada.',
+    specs: [['Pré-tratamento', 'desengraxe · fosfato · enxágue'], ['Pó', 'poliéster RAL 7016 · 70 µm'], ['Cura', '200 °C · 10 min']],
+    cam: { p: [9.4, 5.2, 0.6], t: [15.6, 2.0, -7.0] },
   },
   {
     id: 'montagem',
@@ -149,10 +154,10 @@ export const STATIONS = [
     id: 'expedicao',
     n: '09',
     name: 'Estoque e expedição',
-    text: 'Os paletes prontos vão para o estoque de produto acabado, no lado direito. De lá a empilhadeira carrega o caminhão; com a carga completa, o portão abre e ele sai da fábrica.',
-    specs: [['Estoque', 'porta-paletes · 3 níveis'], ['Carga', '8 armários / viagem'], ['Saída', 'portão frontal direito']],
-    cam: { p: [21.0, 8.5, 25.0], t: [30.5, 1.4, 12.0] },
+    text: 'Os paletes envolvidos vão para o estoque de armários embalados, ao lado da paletização. De lá a empilhadeira carrega o caminhão; com a carga completa, o portão abre e ele sai da fábrica.',
+    specs: [['Estoque', 'porta-paletes · 3 níveis'], ['Carga', '8 armários / viagem'], ['Saída', 'portão frontal']],
+    cam: { p: [-25.5, 8.0, 22.0], t: [-33.0, 1.4, 8.6] },
   },
 ];
 
-export const OVERVIEW = { p: [-2.5, 40, 60], t: [-2.5, 0, 0] };
+export const OVERVIEW = { p: [-6, 36, 54], t: [-6, 0, 0] };

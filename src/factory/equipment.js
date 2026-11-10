@@ -368,23 +368,49 @@ export function washTunnel(len = 6) {
   const w = 1.7,
     H = 3.4;
   const inox = M.alu;
-  for (const z of [-w / 2, w / 2]) g.add(rbox(inox, len, H - 0.2, 0.08, 0, 0.2, z, 0.01));
+  const n = 3; // estágios: desengraxe, fosfato, enxágue
+  // parede de trás inteira; parede da frente com janelas de inspeção
+  g.add(rbox(inox, len, H - 0.2, 0.08, 0, 0.2, -w / 2, 0.01));
+  g.add(rbox(inox, len, 1.3, 0.08, 0, 0.2, w / 2, 0.01));
+  g.add(rbox(inox, len, H - 2.75, 0.08, 0, 2.75, w / 2, 0.01));
+  for (let i = 0; i <= n; i++) g.add(box(inox, i === 0 || i === n ? 0.5 : 0.3, 1.3, 0.08, -len / 2 + (len * i) / n + (i === 0 ? 0.25 : i === n ? -0.25 : 0), 1.48, w / 2));
   g.add(box(inox, len, 0.08, w, 0, H, 0));
   g.add(box(M.anthracite, len, 0.2, w + 0.3, 0, 0, 0));
-  // tanques + bombas + tubulação
-  for (const x of [-len / 4, len / 4]) {
-    g.add(rbox(inox, 1.4, 0.9, 0.9, x, 0, w / 2 + 0.65, 0.04));
-    g.add(cyl(M.blue, 0.12, 0.4, x + 0.5, 0.2, w / 2 + 1.3, 'x', 14));
-    g.add(cyl(M.blue, 0.04, 2.2, x - 0.4, 0.9, w / 2 + 0.3, 'y', 8));
-    g.add(cyl(M.blue, 0.04, 1.2, x - 0.4, 3.1, w / 2 - 0.2, 'z', 8));
+  // divisórias entre estágios (com passagem para a peça) e barras de bicos
+  for (let i = 1; i < n; i++) {
+    const x = -len / 2 + (len * i) / n;
+    g.add(box(inox, 0.04, H - 0.4, 0.3, x, 0.2, -w / 2 + 0.19));
+    g.add(box(inox, 0.04, H - 0.4, 0.3, x, 0.2, w / 2 - 0.19));
   }
-  // janelas de inspeção
-  for (const x of [-len / 4, len / 4]) g.add(box(M.dark, 0.9, 0.5, 0.01, x, 1.7, w / 2 + 0.041));
-  const lg = panel(signTexture(['PRÉ-TRATAMENTO', 'DESENGRAXE · FOSFATO · ENXÁGUE'], { w: 1024, h: 256, bg: '#1f4fa3', size: 82, sub: 36 }), 2.4, 0.6);
-  lg.position.set(0, 2.7, w / 2 + 0.045);
-  g.add(lg);
+  const labels = ['DESENGRAXE', 'FOSFATO', 'ENXÁGUE'];
+  for (let i = 0; i < n; i++) {
+    const x = -len / 2 + (len * (i + 0.5)) / n;
+    for (const z of [-w / 2 + 0.14, w / 2 - 0.14]) for (const dx of [-0.35, 0.35]) g.add(cyl(M.blue, 0.025, 1.9, x + dx, 1.1, z, 'y', 8));
+    g.add(cyl(M.blue, 0.03, w - 0.2, x - 0.35, 3.0, 0, 'z', 8));
+    g.add(cyl(M.blue, 0.03, w - 0.2, x + 0.35, 3.0, 0, 'z', 8));
+    // tanque + bomba de cada estágio
+    g.add(rbox(inox, len / n - 0.5, 0.8, 0.8, x, 0, w / 2 + 0.62, 0.04));
+    g.add(cyl(M.blue, 0.11, 0.36, x + 0.45, 0.22, w / 2 + 1.2, 'x', 14));
+    g.add(cyl(M.blue, 0.04, 1.3, x - 0.45, 0.8, w / 2 + 0.3, 'y', 8));
+    const lg = panel(signTexture([labels[i]], { w: 512, h: 128, bg: '#1f4fa3', size: 62 }), 1.1, 0.275);
+    lg.position.set(x, 3.05, w / 2 + 0.045);
+    g.add(lg);
+  }
   g.add(cyl(M.galv, 0.18, 5.4, len / 2 - 0.6, H, 0, 'y', 14));
-  return finish(g);
+  const root = G();
+  root.add(finish(g));
+  for (let i = 0; i < n; i++) {
+    const x = -len / 2 + (len * (i + 0.5)) / n;
+    const win = new THREE.Mesh(new THREE.PlaneGeometry(len / n - 0.3, 1.27), M.glass);
+    win.position.set(x, 2.13, w / 2);
+    root.add(win);
+  }
+  const l = new THREE.Mesh(new THREE.BoxGeometry(len - 0.6, 0.03, 0.08), M.lamp);
+  l.position.set(0, H - 0.06, 0);
+  root.add(l);
+  root.userData.stages = [0, 1, 2].map((i) => -len / 2 + (len * (i + 0.5)) / n);
+  root.userData.w = w;
+  return root;
 }
 
 export function powderBooth(len = 5) {
@@ -444,7 +470,7 @@ export function powderBooth(len = 5) {
 }
 
 // estufa de cura: túnel ao longo de X (girar no lugar)
-export function cureOven(len = 7) {
+export function cureOven(len = 7, { title = 'ESTUFA DE CURA', sub = '200 °C · 10 MIN', bg = '#b3261e', glow = [1.9, 0.62, 0.16], light = 30, full = true } = {}) {
   const g = G();
   const w = 2.3,
     H = 3.7;
@@ -453,32 +479,39 @@ export function cureOven(len = 7) {
   g.add(box(M.anthracite, len, 0.1, w + 0.3, 0, 0, 0));
   // cortinas de ar nas bocas
   for (const x of [-len / 2, len / 2]) {
-    g.add(box(M.anthracite, 0.5, 0.5, w + 0.3, x, H - 0.5, 0));
-    for (const z of [-w / 2 - 0.02, w / 2 + 0.02]) g.add(box(M.anthracite, 0.5, H, 0.2, x, 0, z));
+    g.add(box(M.anthracite, 0.4, 0.5, w + 0.3, x, H - 0.5, 0));
+    for (const z of [-w / 2 - 0.02, w / 2 + 0.02]) g.add(box(M.anthracite, 0.4, H, 0.2, x, 0, z));
   }
-  // queimador + recirculação + chaminés
-  g.add(rbox(M.light, 1.6, 1.8, 1.0, -len / 4, 0, w / 2 + 0.6, 0.04));
-  g.add(cyl(M.red, 0.2, 0.7, -len / 4 - 0.5, 0.9, w / 2 + 1.3, 'z', 14));
-  g.add(cyl(M.galv, 0.25, 1.6, -len / 4, 2.6, w / 2 + 0.6, 'y', 16));
-  g.add(cyl(M.galv, 0.22, 4.4, len / 4, H + 0.16, 0, 'y', 14));
-  g.add(cyl(M.galv, 0.22, 4.4, -len / 4, H + 0.16, 0, 'y', 14));
-  const lg = panel(signTexture(['ESTUFA DE CURA', '200 °C · 10 MIN'], { w: 1024, h: 256, bg: '#b3261e', size: 90, sub: 40 }), 2.4, 0.6);
-  lg.position.set(len / 4 - 0.2, 2.3, w / 2 + 0.085);
+  if (full) {
+    // queimador + recirculação + chaminés
+    g.add(rbox(M.light, 1.6, 1.8, 1.0, -len / 4, 0, w / 2 + 0.6, 0.04));
+    g.add(cyl(M.red, 0.2, 0.7, -len / 4 - 0.5, 0.9, w / 2 + 1.3, 'z', 14));
+    g.add(cyl(M.galv, 0.25, 1.6, -len / 4, 2.6, w / 2 + 0.6, 'y', 16));
+    g.add(cyl(M.galv, 0.22, 4.4, len / 4, H + 0.16, 0, 'y', 14));
+    g.add(cyl(M.galv, 0.22, 4.4, -len / 4, H + 0.16, 0, 'y', 14));
+  } else {
+    g.add(rbox(M.light, 0.9, 1.3, 0.7, 0, 0, -w / 2 - 0.5, 0.04));
+    g.add(cyl(M.galv, 0.2, 4.4, 0, H + 0.16, 0, 'y', 14));
+  }
+  const lg = panel(signTexture([title, sub], { w: 1024, h: 256, bg, size: full ? 90 : 84, sub: 40 }), full ? 2.4 : 2.0, full ? 0.6 : 0.5);
+  lg.position.set(full ? len / 4 - 0.2 : 0, 2.3, w / 2 + 0.085);
   g.add(lg);
   const root = G();
   root.add(finish(g));
   // interior incandescente
-  const hotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.9, 0.62, 0.16), side: THREE.BackSide });
-  const inner = new THREE.Mesh(new THREE.BoxGeometry(len - 0.4, H - 0.5, w - 0.4), hotMat);
+  const hotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(...glow), side: THREE.BackSide });
+  const inner = new THREE.Mesh(new THREE.BoxGeometry(len - 0.3, H - 0.5, w - 0.4), hotMat);
   inner.position.y = 0.2 + (H - 0.5) / 2;
   inner.userData.noShadow = true;
   root.add(inner);
-  const glow = new THREE.PointLight(0xff7a2a, 30, 9, 1.6);
-  glow.position.set(0, 1.8, 0);
-  root.add(glow);
-  const con = console_('ESTUFA', [['Zona 1', '198 °C', 0.92], ['Zona 2', '201 °C', 0.95], ['Tempo', '10 min'], ['Gás', 'GN 14 m³/h', 0.5]], { color: '#ff6a3a' });
-  con.position.set(len / 4 + 1.6, 0, w / 2 + 0.7);
-  root.add(shadows(con));
+  const pl = new THREE.PointLight(0xff7a2a, light, 9, 1.6);
+  pl.position.set(0, 1.8, 0);
+  root.add(pl);
+  if (full) {
+    const con = console_('ESTUFA', [['Zona 1', '198 °C', 0.92], ['Zona 2', '201 °C', 0.95], ['Tempo', '10 min'], ['Gás', 'GN 14 m³/h', 0.5]], { color: '#ff6a3a' });
+    con.position.set(len / 4 + 1.6, 0, w / 2 + 0.7);
+    root.add(shadows(con));
+  }
   return { group: root, len, w, H };
 }
 
@@ -1084,4 +1117,60 @@ export function receivingDesk() {
   g.add(box(M.iron, 1.5, 0.06, 1.5, 2.0, 0, 0.3)); // balança
   g.add(box(M.hazard, 1.5, 0.004, 0.1, 2.0, 0.06, -0.4));
   return finish(g);
+}
+
+// mesa de recortes do laser (duas zonas: pilha separada e posição de pega da dobradeira)
+export function blankTable(w = 1.3, d = 2.3, h = 0.86) {
+  const g = G();
+  g.add(box(M.iron, w, 0.04, d, 0, h - 0.04, 0));
+  g.add(box(M.anthracite, w - 0.1, 0.1, d - 0.1, 0, h - 0.14, 0));
+  for (const x of [-w / 2 + 0.07, w / 2 - 0.07]) for (const z of [-d / 2 + 0.07, 0, d / 2 - 0.07]) g.add(box(M.anthracite, 0.08, h - 0.14, 0.08, x, 0, z));
+  g.add(box(M.hazard, w, 0.006, 0.05, 0, h, 0)); // divisão das zonas
+  return finish(g);
+}
+
+// mesa de solda perfurada com batentes
+export function weldTable(w = 1.5, d = 1.1, h = 0.8) {
+  const g = G();
+  g.add(box(M.iron, w, 0.06, d, 0, h - 0.06, 0));
+  g.add(box(M.dark, w - 0.06, 0.004, d - 0.06, 0, h, 0));
+  for (const x of [-w / 2 + 0.08, w / 2 - 0.08]) for (const z of [-d / 2 + 0.08, d / 2 - 0.08]) g.add(box(M.blue, 0.09, h - 0.06, 0.09, x, 0, z));
+  g.add(box(M.blue, w - 0.16, 0.07, 0.07, 0, 0.2, -d / 2 + 0.08));
+  g.add(box(M.blue, w - 0.16, 0.07, 0.07, 0, 0.2, d / 2 - 0.08));
+  for (const [x, z] of [[-w / 2 + 0.06, -d / 2 + 0.06], [w / 2 - 0.06, -d / 2 + 0.06]]) g.add(box(M.safety, 0.05, 0.07, 0.05, x, h, z));
+  return finish(g);
+}
+
+// carrinho baixo de peças (entrada e saída das células)
+export function partsCart(w = 1.1, d = 0.8) {
+  const g = G();
+  g.add(rbox(M.blue, w, 0.06, d, 0, 0.16, 0, 0.012));
+  for (const x of [-w / 2 + 0.09, w / 2 - 0.09]) for (const z of [-d / 2 + 0.09, d / 2 - 0.09]) g.add(cyl(M.rubber, 0.07, 0.05, x, 0.07, z, 'x', 12));
+  for (const x of [-w / 2 + 0.03, w / 2 - 0.03]) g.add(box(M.blue, 0.035, 0.75, 0.035, x, 0.22, -d / 2 + 0.03));
+  g.add(box(M.blue, w, 0.035, 0.035, 0, 0.95, -d / 2 + 0.03));
+  return finish(g);
+}
+
+// posto de medição de camada depois do resfriamento (pórtico baixo com sensores e tela)
+export function thicknessCheck() {
+  const g = G();
+  for (const z of [-0.85, 0.85]) {
+    g.add(box(M.anthracite, 0.09, 3.3, 0.09, 0, 0, z));
+    g.add(box(M.iron, 0.3, 0.015, 0.3, 0, 0, z));
+    for (const y of [1.9, 2.3, 2.7]) g.add(rbox(M.dark, 0.1, 0.1, 0.22, 0, y, z * 0.86, 0.01));
+  }
+  g.add(box(M.anthracite, 0.09, 0.09, 1.8, 0, 3.3, 0));
+  const root = G();
+  root.add(finish(g));
+  const led = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 1.2, 2.8) });
+  for (const z of [-0.74, 0.74]) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.02, 1.1, 0.02), led);
+    b.position.set(0, 2.3, z);
+    root.add(b);
+  }
+  const sc = panel(screenTexture('CAMADA DE TINTA', [['Média', '72 µm', 0.72], ['Mínima', '64 µm', 0.64], ['Cura', 'OK', 1]], { color: '#39d98a' }), 0.8, 0.5, { emissive: true, intensity: 1.5 });
+  sc.position.set(0, 1.5, 1.0);
+  root.add(sc);
+  root.add(shadows(new THREE.Group().add(box(M.anthracite, 0.86, 0.56, 0.04, 0, 1.22, 0.975), box(M.anthracite, 0.07, 1.22, 0.07, 0, 0, 0.975))));
+  return root;
 }

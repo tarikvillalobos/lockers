@@ -79,14 +79,17 @@ export function buildFab(ctx) {
   add(cutGlow);
 
   // =====================================================================================
-  // 2. Robô sobre trilho + dobradeira + transportador
+  // 2. Triagem dos recortes + robô da dobradeira (os dois no mesmo trilho) + transportador
   // =====================================================================================
   const rail = EQ.robotRail(POS.rail.x1 - POS.rail.x0);
   rail.position.set((POS.rail.x0 + POS.rail.x1) / 2, 0, POS.rail.z);
   add(rail);
   const carriage = add(EQ.railCarriage());
+  const carriage2 = add(EQ.railCarriage());
   const r1 = (robots.r1 = new Robot({ scale: 1.15, tool: vacuumTool(0.26, 0.13, 3, 2) }));
+  const r2 = (robots.r2 = new Robot({ scale: 1.15, tool: vacuumTool(0.34, 0.22, 3, 2) }));
   add(r1.group);
+  add(r2.group);
   const brake = EQ.pressBrake();
   brake.group.position.set(POS.brake.x, 0, POS.brake.z);
   add(brake.group);
@@ -97,38 +100,28 @@ export function buildFab(ctx) {
   const tower = EQ.bufferTower();
   tower.position.set(C1.x1 + 0.1, 0, C1.z);
   add(tower);
-
-  const showIds = ['LR-030', 'LR-010', 'LR-001', 'LR-020', 'LR-021'].filter((id) => A.nest.items.some((i) => i.part.id === id));
-  const DIE = { x: POS.brake.x, y: POS.brake.h + 0.001, z: POS.brake.die };
-  const rotY = (x, z, a) => [x * Math.cos(a) + z * Math.sin(a), -x * Math.sin(a) + z * Math.cos(a)];
-  const shows = showIds.map((id) => {
-    const fo = A.foldable(id);
-    add(fo.holder);
-    fo.holder.traverse((o) => o.isMesh && (o.castShadow = o.receiveShadow = true));
-    const part = fo.part;
-    const t = part.t / 1000;
-    const cu = part.w / 2000,
-      cv = part.h / 2000;
-    const np = A.nestPose(id);
-    // TCP = centro da face base, por cima
-    const tcpOf = (hx, hy, hz, yaw) => {
-      const [dx, dz] = rotY(cu, -cv, yaw);
-      return [hx + dx, hy + t, hz + dz];
-    };
-    const pick = { h: [LZ.unload + np.x, SHEET_Y + 0.002, LZ.z + np.z], yaw: np.yaw };
-    pick.tcp = tcpOf(...pick.h, pick.yaw);
-    const steps = fo.steps.map((s) => {
-      const yaw = Math.atan2(s.out[0], s.out[1]);
-      const [dx, dz] = rotY(s.mid[0] / 1000, -s.mid[1] / 1000, yaw);
-      const h = [DIE.x - dx, DIE.y, DIE.z - dz];
-      return { ...s, yaw, h, tcp: tcpOf(...h, yaw) };
+  const TB = POS.table;
+  const table = EQ.blankTable(1.3, 2.3, TB.h);
+  table.position.set(TB.x, 0, TB.z);
+  add(table);
+  // pilha de recortes já separados (zona de triagem)
+  {
+    const pile = new THREE.Group();
+    [[1.0, 0.44], [0.54, 0.42], [0.45, 0.42], [0.4, 0.4], [0.4, 0.22]].forEach(([w, d], i) => {
+      for (let k = 0; k < 3; k++) pile.add(box(M.sheet, w, 0.002, d, (i % 2 ? 0.12 : -0.1) * (i > 0 ? 1 : 0), i * 0.0075 + k * 0.0024, (i % 3) * 0.05 - 0.05));
     });
-    const dropYaw = Math.PI / 2;
-    const [ddx, ddz] = rotY(cu, -cv, dropYaw);
-    const drop = { h: [C1.x0 + 0.75 - ddx, C1.h + 0.002, C1.z - ddz], yaw: dropYaw };
-    drop.tcp = tcpOf(...drop.h, drop.yaw);
-    // recorte escuro que fica na chapa depois que a peça sai
-    const it = A.nest.items.find((i) => i.part.id === id);
+    pile.position.set(TB.x, TB.h + 0.001, TB.zSort);
+    add(shadows(pile));
+  }
+
+  const rotY = (x, z, a) => [x * Math.cos(a) + z * Math.sin(a), -x * Math.sin(a) + z * Math.cos(a)];
+  const up = (p, d) => [p[0], p[1] + d, p[2]];
+
+  // ---- triagem: o robô 2 tira dois recortes por ciclo da chapa cortada e empilha na mesa ----
+  const sortItems = A.nest.items.map((it) => {
+    const nb = A.nestBlank(it);
+    add(nb.holder);
+    nb.holder.visible = false;
     const shape = new THREE.Shape();
     const ring = it.flat.outer[0].map(([px, py]) => {
       const [sx, sy] = it.rot ? [it.flat.height - py + it.x, px + it.y] : [px + it.x, py + it.y];
@@ -139,52 +132,121 @@ export function buildFab(ctx) {
     hole.rotation.x = -Math.PI / 2;
     hole.visible = false;
     add(hole);
-    // a mesma peça já dobrada, seguindo no transportador
+    return { ...nb, hole, t: it.part.t / 1000 };
+  });
+  const SORT_T = [[0.2, 0.34], [0.42, 0.55]]; // [pega, solta] de cada recorte no ciclo
+  const home2 = [-17.6, 2.2, POS.rail.z - 1.3];
+  const sortKeys = new Map();
+  const sortPlan = (cycle) => {
+    const n = sortItems.length;
+    const key = ((cycle % n) + n) % n;
+    if (sortKeys.has(key)) return sortKeys.get(key);
+    const ids = [(2 * key) % n, (2 * key + 1) % n];
+    const keys = [{ u: 0, p: home2 }];
+    const baseX = [[0, -17.6]];
+    const cl = (x) => Math.min(-16.4, Math.max(POS.rail.x0 + 0.6, x));
+    ids.forEach((id, j) => {
+      const it = sortItems[id];
+      const pk = [LZ.unload + it.center.x, SHEET_Y + 0.001 + it.t, LZ.z + it.center.z];
+      const pl = [TB.x, TB.h + 0.045 + j * 0.004, TB.zSort];
+      const [t0, t1] = SORT_T[j];
+      keys.push({ u: t0 - 0.045, p: up(pk, 0.3), yaw: it.pose.yaw }, { u: t0, p: pk, yaw: it.pose.yaw }, { u: t0 + 0.035, p: up(pk, 0.45), yaw: it.pose.yaw }, { u: t1, p: pl, yaw: 0, lift: 0.3 }, { u: t1 + 0.03, p: up(pl, 0.4), yaw: 0 });
+      baseX.push([t0 - 0.06, cl(pk[0])], [t0 + 0.035, cl(pk[0])], [t1 - 0.03, -16.4], [t1 + 0.005, -16.4]);
+    });
+    keys.push({ u: 0.7, p: home2 }, { u: 0.999, p: home2 });
+    baseX.push([0.72, -17.6], [1, -17.6]);
+    const plan = { ids, keys, baseX };
+    sortKeys.set(key, plan);
+    return plan;
+  };
+
+  // ---- dobra: todas as peças dobradas do armário, uma por ciclo, na ordem do kit ----
+  const showIds = ['LR-010', 'LR-011', 'LR-020', 'LR-021', 'LR-041', 'LR-022', 'LR-023', 'LR-024', 'LR-001', 'LR-002', 'LR-030', 'LR-040', 'LR-031', 'LR-050', 'LR-042', 'LR-060', 'LR-062'].filter((id) => A.byId.has(id));
+  const DIE = { x: POS.brake.x, y: POS.brake.h + 0.001, z: POS.brake.die };
+  const TH = (flip) => (flip ? Math.PI / 2 : -Math.PI / 2); // giro da peça: abas para cima ou peça virada
+  const shows = showIds.map((id) => {
+    const fo = A.foldable(id);
+    add(fo.holder);
+    fo.holder.visible = false;
+    fo.holder.traverse((o) => o.isMesh && (o.castShadow = o.receiveShadow = true));
+    const part = fo.part;
+    const t = part.t / 1000,
+      tz = t / 2;
+    const cu = part.w / 2000,
+      cv = part.h / 2000;
+    // centro da face base no referencial do holder, com a peça girada th em torno do eixo u
+    const cOff = (th, yaw) => {
+      const y = cv * Math.cos(th) - tz * Math.sin(th),
+        z = cv * Math.sin(th) + tz * Math.cos(th);
+      const [dx, dz] = rotY(cu, z, yaw);
+      return [dx, y, dz];
+    };
+    // holder a partir do TCP (TCP = centro da peça, na face de cima)
+    const holderOf = (tcp, yaw, th) => {
+      const c = cOff(th, yaw);
+      return [tcp.x - c[0], tcp.y - tz - c[1], tcp.z - c[2]];
+    };
+    const pickTcp = [TB.x, TB.h + t + 0.001, TB.zPick];
+    const steps = fo.steps.map((s) => {
+      const flip = s.dir === 'down' ? 1 : 0;
+      const sg = flip ? 1 : -1;
+      const yaw = Math.atan2(s.out[0], -sg * s.out[1]);
+      const [dx, dz] = rotY(s.mid[0] / 1000, (sg * s.mid[1]) / 1000, yaw);
+      const h = [DIE.x - dx, DIE.y + (flip ? t : 0), DIE.z - dz];
+      const c = cOff(TH(flip), yaw);
+      return { ...s, flip, yaw, tcp: [h[0] + c[0], h[1] + c[1] + tz, h[2] + c[2]] };
+    });
+    const lastFlip = steps.length ? steps[steps.length - 1].flip : 0;
+    const dropTcp = [C1.x0 + 0.75, C1.h + t + 0.002, C1.z];
     const done = new THREE.Group();
-    const inner = new THREE.Group();
-    inner.rotation.x = -Math.PI / 2;
-    inner.scale.setScalar(0.001);
-    const dm = new THREE.Mesh(A.partGeo(id), M.sheet);
+    const dInner = new THREE.Group();
+    dInner.rotation.x = TH(lastFlip);
+    dInner.scale.setScalar(0.001);
+    const dm = new THREE.Mesh(A.partGeo(id), part.mat.startsWith('gi') ? M.galv : M.sheet);
     dm.castShadow = dm.receiveShadow = true;
-    const srcDown = (A.byId.get(id).flanges ?? []).filter((f) => (f.dir ?? 'up') === 'down').length > (A.byId.get(id).flanges ?? []).length / 2;
-    if (srcDown) {
-      inner.rotation.x = Math.PI / 2; // vira a peça: as abas ficam para cima
-      inner.position.set(0, t, -part.h / 1000);
-    }
-    inner.add(dm);
-    done.add(inner);
+    dInner.add(dm);
+    done.add(dInner);
     done.visible = false;
     add(done);
-    return { id, fo, part, pick, steps, drop, hole, done, t };
+    const dh = holderOf({ x: dropTcp[0], y: dropTcp[1], z: dropTcp[2] }, Math.PI / 2, TH(lastFlip));
+    done.rotation.y = Math.PI / 2;
+    return { id, fo, part, steps, pickTcp, dropTcp, lastFlip, done, dh, t, holderOf };
   });
   // trilha do TCP do robô para cada peça (a última chave já aponta para a peça seguinte)
-  const up = (p, d) => [p[0], p[1] + d, p[2]];
   const W0 = 0.3,
     W1 = 0.84;
   shows.forEach((s, k) => {
     const next = shows[(k + 1) % shows.length];
-    const n = s.steps.length;
-    const dU = (W1 - W0) / n;
+    const n = Math.max(1, s.steps.length);
+    const dU = Math.min(0.135, (W1 - W0) / n);
     const keys = [
-      { u: 0.0, p: up(s.pick.tcp, 0.55), yaw: s.pick.yaw },
-      { u: 0.165, p: up(s.pick.tcp, 0.2), yaw: s.pick.yaw },
-      { u: 0.2, p: s.pick.tcp, yaw: s.pick.yaw },
-      { u: 0.235, p: up(s.pick.tcp, 0.4), yaw: s.pick.yaw },
+      { u: 0.0, p: up(s.pickTcp, 0.5), yaw: 0 },
+      { u: 0.165, p: up(s.pickTcp, 0.2), yaw: 0 },
+      { u: 0.2, p: s.pickTcp, yaw: 0 },
+      { u: 0.235, p: up(s.pickTcp, 0.4), yaw: 0 },
     ];
+    const flips = [[0, 0], [0.235, 0]];
+    let prevFlip = 0;
     s.steps.forEach((st, i) => {
       const a = W0 + i * dU;
-      keys.push({ u: a + (i === 0 ? 0 : 0.36 * dU), p: st.tcp, yaw: st.yaw, lift: i === 0 ? 0.2 : 0.12 });
+      const arrive = a + (i === 0 ? 0 : 0.36 * dU);
+      keys.push({ u: arrive, p: st.tcp, yaw: st.yaw, lift: st.flip !== prevFlip ? 0.42 : i === 0 ? 0.2 : 0.12 });
       keys.push({ u: a + 0.98 * dU, p: st.tcp, yaw: st.yaw });
+      if (st.flip !== prevFlip) flips.push([i === 0 ? 0.245 : a + 0.04 * dU, prevFlip], [arrive - 0.012, st.flip]);
+      prevFlip = st.flip;
       st.a = a;
     });
-    keys.push({ u: 0.9, p: up(s.drop.tcp, 0.3), yaw: s.drop.yaw, lift: 0.25 });
-    keys.push({ u: 0.925, p: s.drop.tcp, yaw: s.drop.yaw });
-    keys.push({ u: 0.955, p: up(s.drop.tcp, 0.4), yaw: s.drop.yaw });
-    keys.push({ u: 0.9999, p: up(next.pick.tcp, 0.55), yaw: next.pick.yaw });
+    const end = W0 + n * dU;
+    keys.push({ u: Math.max(0.9, end + 0.05) - 0.0, p: up(s.dropTcp, 0.3), yaw: Math.PI / 2, lift: 0.25 });
+    keys.push({ u: 0.925, p: s.dropTcp, yaw: Math.PI / 2 });
+    keys.push({ u: 0.955, p: up(s.dropTcp, 0.4), yaw: Math.PI / 2 });
+    keys.push({ u: 0.9999, p: up(next.pickTcp, 0.5), yaw: 0 });
+    flips.push([1, prevFlip]);
     s.keys = keys;
+    s.flips = flips;
     s.dU = dU;
-    const cl = (x) => Math.min(POS.rail.x1 - 0.6, Math.max(POS.rail.x0 + 0.6, x));
-    s.baseX = [[0, cl(s.pick.tcp[0])], [0.22, cl(s.pick.tcp[0])], [0.3, cl(DIE.x)], [0.85, cl(DIE.x)], [0.91, POS.rail.x1 - 0.6], [0.955, POS.rail.x1 - 0.6], [1, cl(next.pick.tcp[0])]];
+    const xp = TB.x + 0.6;
+    s.baseX = [[0, xp], [0.22, xp], [0.3, DIE.x], [0.85, DIE.x], [0.91, POS.rail.x1 - 0.6], [0.955, POS.rail.x1 - 0.6], [1, xp]];
   });
 
   // =====================================================================================
@@ -276,14 +338,23 @@ export function buildFab(ctx) {
     sUd = path.sOf.legB(11.2);
   const dLd = dOf(sLd),
     dUd = dOf(sUd);
-  const BOOTH = { x: 16.5, len: 5 },
-    WASH = { x: 9.6, len: 6 },
+  const WASH = { x: 8.5, len: 4.8 },
+    DRY = { x: 12.6, len: 2.4 },
+    BOOTH = { x: 17.0, len: 5 },
     OVEN = { z: -1.2, len: 7 },
-    COOL = { x: 17.6, len: 8.4 };
-  const dB0 = dOf(path.sOf.legA(BOOTH.x - 1.6)),
-    dB1 = dOf(path.sOf.legA(BOOTH.x + 1.6));
-  const dO0 = dOf(path.sOf.east(OVEN.z - 2.6)),
-    dO1 = dOf(path.sOf.east(OVEN.z + 3.0));
+    COOL = { x: 18.4, len: 7.6 },
+    CHECK = { x: 13.3 };
+  const dA = (x) => dOf(path.sOf.legA(x));
+  const dW0 = dA(WASH.x - WASH.len / 2),
+    dW1 = dA(WASH.x + WASH.len / 2),
+    dD0 = dA(DRY.x - DRY.len / 2),
+    dD1 = dA(DRY.x + DRY.len / 2);
+  const dB0 = dA(BOOTH.x - 1.3),
+    dB1 = dA(BOOTH.x + 1.3);
+  const dO0 = dOf(path.sOf.east(OVEN.z - 3.2)),
+    dO1 = dOf(path.sOf.east(OVEN.z + 3.2));
+  const dC0 = dOf(path.sOf.legB(COOL.x + COOL.len / 2)),
+    dC1 = dOf(path.sOf.legB(COOL.x - COOL.len / 2));
 
   // trilho (segmentos instanciados) + pendurais do teto
   {
@@ -329,17 +400,42 @@ export function buildFab(ctx) {
   }
   // cargas
   const RAW = new THREE.Color('#b6bcc2'),
-    POWDER = new THREE.Color('#565c62'),
-    CURED = new THREE.Color('#3a4045');
-  const paintMat = () => new THREE.MeshPhysicalMaterial({ color: RAW.clone(), metalness: 0.85, roughness: 0.36, clearcoat: 0, clearcoatRoughness: 0.5, envMapIntensity: 2.4 });
+    POWDER = new THREE.Color('#5b6167'),
+    CURED = new THREE.Color('#3a4045'),
+    HOT = new THREE.Color(0.55, 0.15, 0.03);
+  // O pó cobre a peça conforme ela passa pelo plano das pistolas (posição no mundo), não de uma vez.
+  // uMode: 0 = aço cru, 1 = passando pela cabine (cobre o que já cruzou uPlane), 2 = toda coberta
+  const paintMat = () => {
+    const m = new THREE.MeshPhysicalMaterial({ color: RAW.clone(), metalness: 0.85, roughness: 0.36, envMapIntensity: 2.4 });
+    const un = { uMode: { value: 0 }, uPlane: { value: 0 }, uCure: { value: 0 }, uPowder: { value: POWDER }, uCured: { value: CURED } };
+    m.userData.u = un;
+    m.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, un);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPos;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;\nuniform float uMode;\nuniform float uPlane;\nuniform float uCure;\nuniform vec3 uPowder;\nuniform vec3 uCured;')
+        .replace('#include <color_fragment>', '#include <color_fragment>\nfloat coatK = uMode < 0.5 ? 0.0 : (uMode < 1.5 ? smoothstep(uPlane - 0.2, uPlane + 0.2, vWPos.x) : 1.0);\ndiffuseColor.rgb = mix(diffuseColor.rgb, mix(uPowder, uCured, uCure), coatK);')
+        .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, mix(0.97, 0.6, uCure), coatK);')
+        .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor = mix(metalnessFactor, mix(0.0, 0.15, uCure), coatK);');
+    };
+    m.customProgramCacheKey = () => 'paint-coat';
+    return m;
+  };
+  // d = distância percorrida no trilho desde a carga
   const setPaint = (mat, d) => {
-    const f1 = smooth((d - dB0) / (dB1 - dB0)),
-      f2 = smooth((d - dO0) / (dO1 - dO0));
-    mat.color.copy(RAW).lerp(POWDER, f1).lerp(CURED, f2);
-    mat.roughness = lerp(lerp(0.36, 0.96, f1), 0.6, f2);
-    mat.metalness = lerp(lerp(0.85, 0.0, f1), 0.15, f2);
-    mat.envMapIntensity = lerp(2.4, 1, f1);
-    mat.clearcoat = 0.15 * f2;
+    const un = mat.userData.u;
+    // molhada depois da lavagem, seca na estufa de secagem
+    const wet = smooth((d - dW0) / 0.8) * (1 - smooth((d - dD0) / (dD1 - dD0)));
+    mat.color.copy(RAW).multiplyScalar(1 - 0.2 * wet);
+    mat.roughness = lerp(0.36, 0.08, wet);
+    un.uMode.value = d < dB0 ? 0 : d <= dB1 ? 1 : 2;
+    un.uPlane.value = BOOTH.x;
+    const cure = smooth((d - dO0) / (dO1 - dO0));
+    un.uCure.value = cure;
+    // a peça sai quente da estufa e esfria no túnel de resfriamento
+    const heat = smooth((d - dO0) / ((dO1 - dO0) * 0.45)) * (1 - smooth((d - dC0) / (dC1 - dC0)));
+    mat.emissive.copy(HOT).multiplyScalar(d > 1e8 ? 0 : heat);
+    mat.envMapIntensity = d < dB0 ? 2.4 : 1;
   };
   const shellGeo = A.single('shell');
   ctx.shellGeo = shellGeo;
@@ -373,6 +469,9 @@ export function buildFab(ctx) {
   const wash = EQ.washTunnel(WASH.len);
   wash.position.set(WASH.x, 0, PP.z0);
   add(wash);
+  const dry = EQ.cureOven(DRY.len, { title: 'SECAGEM', sub: '120 °C', bg: '#c2410c', glow: [1.2, 0.5, 0.18], light: 8, full: false });
+  dry.group.position.set(DRY.x, 0, PP.z0);
+  add(dry.group);
   const booth = EQ.powderBooth(BOOTH.len);
   booth.group.position.set(BOOTH.x, 0, PP.z0);
   add(booth.group);
@@ -383,6 +482,9 @@ export function buildFab(ctx) {
   const cool = EQ.coolingTunnel(COOL.len);
   cool.position.set(COOL.x, 0, PP.z1);
   add(cool);
+  const check = EQ.thicknessCheck();
+  check.position.set(CHECK.x, 0, PP.z1);
+  add(check);
   const liftIn = EQ.doorLift('CARGA DE PORTAS');
   liftIn.group.position.set(4.4, 0, PP.z0);
   add(liftIn.group);
@@ -499,6 +601,38 @@ export function buildFab(ctx) {
     laser.bridge.position.x = hxL - 0.2;
     laser.head.position.z = hzL;
 
+    // ---- robô 2: triagem dos recortes ----
+    const plan = sortPlan(cycle);
+    const t2 = evalTrack(plan.keys, u, _t);
+    const x2 = kf(u, plan.baseX);
+    carriage2.position.set(x2, 0, POS.rail.z);
+    r2.group.position.set(x2, 0.26, POS.rail.z);
+    r2.group.rotation.y = Math.PI;
+    r2.group.updateMatrixWorld(true);
+    r2.solve(t2.pos, t2.yaw + Math.PI / 2);
+    for (const it of sortItems) {
+      it.holder.visible = false;
+      it.hole.visible = false;
+    }
+    plan.ids.forEach((id, j) => {
+      const it = sortItems[id];
+      const [t0, t1] = SORT_T[j];
+      if (uVis && u >= t0) {
+        it.hole.visible = true;
+        it.hole.position.set(ux, uy - HI + SHEET_Y + 0.0013, LZ.z);
+      }
+      if (u >= t0 && u < t1) {
+        // o recorte segue o TCP (preso pelo centro)
+        it.holder.visible = true;
+        const dx = it.pose.x - it.center.x,
+          dz = it.pose.z - it.center.z;
+        const a0 = t2.yaw - it.pose.yaw;
+        const [rx, rz] = rotY(dx, dz, a0);
+        it.holder.position.set(t2.pos.x + rx, t2.pos.y - it.t, t2.pos.z + rz);
+        it.holder.rotation.y = t2.yaw;
+      }
+    });
+
     // ---- robô 1 + dobradeira ----
     const k = ((cycle % shows.length) + shows.length) % shows.length;
     const s = shows[k];
@@ -512,43 +646,36 @@ export function buildFab(ctx) {
     r1.solve(tr.pos, tr.yaw + Math.PI / 2);
     for (const o of shows) {
       o.fo.holder.visible = o === s;
-      o.hole.visible = false;
       o.done.visible = false;
     }
-    // peça em processo
-    const cu = s.part.w / 2000,
-      cv = s.part.h / 2000;
+    // peça em processo: na mesa, no robô (girando se precisar virar) ou já no transportador
+    const fl = kf(u, s.flips);
+    const th = -Math.PI / 2 + Math.PI * fl;
+    s.fo.inner.rotation.x = th;
     if (u < 0.2) {
-      s.fo.holder.position.set(s.pick.h[0] + (ux - LZ.unload), s.pick.h[1] + (uy - HI), s.pick.h[2]);
-      s.fo.holder.rotation.y = s.pick.yaw;
+      const h = s.holderOf({ x: s.pickTcp[0], y: s.pickTcp[1], z: s.pickTcp[2] }, 0, th);
+      s.fo.holder.position.set(h[0], h[1], h[2]);
+      s.fo.holder.rotation.y = 0;
     } else if (u < 0.925) {
-      const [dx, dz] = rotY(cu, -cv, tr.yaw);
-      s.fo.holder.position.set(tr.pos.x - dx, tr.pos.y - s.t, tr.pos.z - dz);
+      const h = s.holderOf(tr.pos, tr.yaw, th);
+      s.fo.holder.position.set(h[0], h[1], h[2]);
       s.fo.holder.rotation.y = tr.yaw;
     } else {
-      s.fo.holder.position.set(...s.drop.h);
-      s.fo.holder.rotation.y = s.drop.yaw;
-    }
-    if (uVis && u >= 0.2) {
-      s.hole.visible = true;
-      s.hole.position.set(ux, uy - HI + SHEET_Y + 0.0013, LZ.z);
+      s.fo.holder.position.set(s.dh[0], s.dh[1], s.dh[2]);
+      s.fo.holder.rotation.y = Math.PI / 2;
     }
     // dobras e avental
     let ramDown = 0;
-    s.steps.forEach((st, i) => {
+    s.steps.forEach((st) => {
       const ls = (u - st.a) / s.dU;
       s.fo.setBend(st.bend, u < W0 ? 0 : seg(ls, 0.5, 0.66));
       if (ls >= 0 && ls < 1) ramDown = pulse(ls, 0.4, 0.62, 0.78, 0.96);
     });
     brake.ram.position.y = brake.hd + 0.003 + 0.16 * (1 - ramDown);
     // peça do ciclo anterior seguindo para o pulmão
-    const cxp = seg(u, 0.03, 0.5);
     if (u < 0.5) {
       prev.done.visible = true;
-      const srcDown = prev.done.children[0].rotation.x > 0;
-      prev.done.position.set(prev.drop.h[0] + cxp * (C1.x1 - C1.x0 + 0.3), prev.drop.h[1], prev.drop.h[2]);
-      prev.done.rotation.y = prev.drop.yaw;
-      void srcDown;
+      prev.done.position.set(prev.dh[0] + seg(u, 0.03, 0.5) * (C1.x1 - C1.x0 + 0.3), prev.dh[1], prev.dh[2]);
     }
 
     // ---- solda ----
@@ -596,6 +723,7 @@ export function buildFab(ctx) {
 
     // ---- trilho aéreo ----
     const base = (2 * time) / ctx.takt;
+    gunHit[0] = gunHit[1] = false;
     for (let j = 0; j < NH; j++) {
       const sj = (j + base) * pitch + sOff;
       const p = path.at(sj);
@@ -615,6 +743,7 @@ export function buildFab(ctx) {
       pl.mesh.visible = on;
       if (on) {
         setPaint(pl.mat, d);
+        if (d > dB0 - 0.6 && d < dB1 + 0.6) for (let g = 0; g < 2; g++) if (Math.abs(p.x - (BOOTH.x + booth.guns[g].x)) < 0.48) gunHit[g] = true;
         if (j % 2 === 0) {
           pl.mesh.position.set(p.x, PP.hook - 1.0, p.z);
           pl.mesh.rotation.y = p.yaw;
@@ -626,13 +755,23 @@ export function buildFab(ctx) {
     }
     trolley.instanceMatrix.needsUpdate = rod.instanceMatrix.needsUpdate = hookI.instanceMatrix.needsUpdate = rackI.instanceMatrix.needsUpdate = true;
 
-    // cabine de pó
+    // cabine de pó: os reciprocadores sobem e descem; as pistolas só disparam com peça na frente
     for (let i = 0; i < booth.guns.length; i++) {
       const gn = booth.guns[i];
       const y = 2.25 + 0.5 * Math.sin(time * 2.3 + i * Math.PI);
       gn.car.position.y = y;
-      pv.set(BOOTH.x + gn.x, y + (Math.random() - 0.5) * 0.6, PP.z0 + gn.tipZ);
-      ctx.powder.emit(pv, V(0, 0, -gn.side), 2, { speed: 1.4, spread: 0.28, life: 0.9 });
+      if (!gunHit[i]) continue;
+      for (const dy of [-0.32, 0, 0.32]) {
+        pv.set(BOOTH.x + gn.x, y + dy, PP.z0 + gn.tipZ);
+        ctx.powder.emit(pv, V(0, 0, -gn.side), 2, { speed: 1.5, spread: 0.22, life: 0.8 });
+      }
+    }
+    // lavagem: névoa dos bicos em cada estágio
+    for (const sx of wash.userData.stages) {
+      for (const sz of [-1, 1]) {
+        pv.set(WASH.x + sx + (Math.random() - 0.5) * 0.9, 1.4 + Math.random() * 1.5, PP.z0 + sz * 0.68);
+        ctx.water.emit(pv, V(0, -0.15, -sz), 2, { speed: 2.2, spread: 0.18, life: 0.4 });
+      }
     }
 
     // elevadores de portas
@@ -651,6 +790,7 @@ export function buildFab(ctx) {
     void dt;
   });
 
+  const gunHit = [false, false];
   const _qx = new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), Math.PI / 2).multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), Math.PI / 2));
-  Object.assign(ctx, { path, pitch, sU, sL, U, Lp, GRIP, gripAt, asmO, BOOTH, WASH, OVEN, COOL });
+  Object.assign(ctx, { path, pitch, sU, sL, U, Lp, GRIP, gripAt, asmO, BOOTH, WASH, OVEN, COOL, C1 });
 }

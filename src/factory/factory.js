@@ -8,6 +8,7 @@ import { buildAssets } from './assets.js';
 import { Particles } from './fx.js';
 import { buildFab } from './line.js';
 import { buildAsm, paintFloor } from './line2.js';
+import { buildWeld2 } from './line3.js';
 
 export function buildFactory(scene) {
   initMaterials();
@@ -15,19 +16,22 @@ export function buildFactory(scene) {
   const A = buildAssets();
   const sparks = new Particles(700, { size: 0.06, color: [3.4, 2.1, 0.8], gravity: -7, drag: 0.8 });
   const powder = new Particles(500, { size: 0.2, color: [0.5, 0.52, 0.55], gravity: -0.15, drag: 2.2, additive: false, opacity: 0.35 });
-  scene.add(sparks.points, powder.points);
+  const water = new Particles(500, { size: 0.07, color: [0.75, 0.9, 1.1], gravity: -6, drag: 1.5, additive: true, opacity: 0.55 });
+  scene.add(sparks.points, powder.points, water.points);
   const ctx = {
     scene,
     A,
     building,
     sparks,
     powder,
+    water,
     updaters: [],
     robots: {},
     takt: TAKT,
     mergeGeos: (g) => mergeGeometries(g, false),
   };
   buildFab(ctx);
+  buildWeld2(ctx);
   buildAsm(ctx);
 
   // começa com a linha "quente": o primeiro caminhão já está na doca
@@ -45,6 +49,7 @@ export function buildFactory(scene) {
     for (const f of ctx.updaters) f(c);
     sparks.update(dt);
     powder.update(dt);
+    water.update(dt);
     state.cycle = c.cycle;
     state.u = c.u;
     state.tau8 = c.tau8;

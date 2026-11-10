@@ -5,7 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Locker } from '../locker/Locker.js';
 import { createMaterials } from '../locker/materials.js';
 import { modelData } from '../cad/package.js';
-import { foldedGeometry, instanceMatrix, buildFolded } from '../cad/fold3d.js';
+import { foldedGeometry, instanceMatrix, buildFolded, flatGeometry } from '../cad/fold3d.js';
 import { nestedRings, SHEET } from '../cad/nest.js';
 import { bake, shadows, M } from './kit.js';
 
@@ -38,26 +38,31 @@ export function buildAssets() {
     return holder;
   };
 
-  // peça dobrável (para a dobradeira); as abas "para baixo" viram "para cima" (a peça é virada na mesa)
+  // uma única instância da peça, na posição de montagem
+  const placedOne = (id, i, mat = M.sheet) => {
+    const g = new THREE.Group();
+    const m = new THREE.Mesh(partGeo(id), mat);
+    m.matrixAutoUpdate = false;
+    m.matrix.copy(instanceMatrix(byId.get(id).inst[i]));
+    m.castShadow = m.receiveShadow = true;
+    g.add(m);
+    g.scale.setScalar(0.001);
+    const holder = new THREE.Group();
+    holder.add(g);
+    return holder;
+  };
+
+  // peça dobrável (para a dobradeira), com as dobras nos sentidos do projeto
   const foldable = (id) => {
-    const src = byId.get(id);
-    const part = JSON.parse(JSON.stringify(src));
-    let ups = 0,
-      downs = 0;
-    const count = (f) => (f.flanges ?? []).forEach((c) => ((c.dir ?? 'up') === 'up' ? ups++ : downs++, count(c)));
-    count(part);
-    if (downs > ups) {
-      const flip = (f) => (f.flanges ?? []).forEach((c) => ((c.dir = (c.dir ?? 'up') === 'up' ? 'down' : 'up'), flip(c)));
-      flip(part);
-    }
-    const f = buildFolded(part, M.sheet, { fold: 0 });
+    const part = JSON.parse(JSON.stringify(byId.get(id)));
+    const f = buildFolded(part, part.mat.startsWith('gi') ? M.galv : M.sheet, { fold: 0 });
     const inner = new THREE.Group();
     inner.rotation.x = -Math.PI / 2; // u → X, v → −Z, n → +Y
     inner.scale.setScalar(0.001);
     inner.add(f.group);
     const holder = new THREE.Group();
     holder.add(inner);
-    return { part, holder, ...f };
+    return { part, holder, inner, ...f };
   };
 
   // ---- aninhamento da chapa de 2 mm (a que o laser corta na animação) ----
@@ -130,5 +135,23 @@ export function buildAssets() {
   const live = new Locker(mats, { lock: 'solenoid', hopperLock: true });
   shadows(live.root);
 
-  return { cad, byId, entryOf, partGeo, placed, foldable, nest, cutPath, nestPose, mats, clone, single, complete, live, proto };
+  // recorte plano de um item do aninhamento (para o robô de triagem), no referencial da chapa
+  const nestBlank = (it) => {
+    const mesh = new THREE.Mesh(flatGeometry(it.flat, it.part.t), M.sheet);
+    mesh.castShadow = mesh.receiveShadow = true;
+    const inner = new THREE.Group();
+    inner.rotation.x = -Math.PI / 2;
+    inner.scale.setScalar(0.001);
+    inner.add(mesh);
+    const holder = new THREE.Group();
+    holder.add(inner);
+    const w = it.rot ? it.flat.height : it.flat.width,
+      h = it.rot ? it.flat.width : it.flat.height;
+    // pose do holder na chapa e centro do recorte (X, Z locais da chapa)
+    const pose = it.rot ? { x: (it.flat.height + it.x) / 1000 - 1.5, z: 0.75 - it.y / 1000, yaw: Math.PI / 2 } : { x: it.x / 1000 - 1.5, z: 0.75 - it.y / 1000, yaw: 0 };
+    const center = { x: (it.x + w / 2) / 1000 - 1.5, z: 0.75 - (it.y + h / 2) / 1000 };
+    return { holder, pose, center, w: w / 1000, h: h / 1000 };
+  };
+
+  return { cad, byId, entryOf, partGeo, placed, placedOne, foldable, nest, nestBlank, cutPath, nestPose, mats, clone, single, complete, live, proto };
 }
