@@ -35,9 +35,9 @@ metalúrgica antes do corte em série.
 
 ### Fábrica 3D
 
-Linha em U com nove estações, tudo animado em função do tempo (um armário a cada 24 s de simulação em 1×):
+Galpão de 81 × 30 m, com linha em U e nove estações, tudo animado em função do tempo (um armário a cada 24 s de simulação em 1×):
 
-1. **Recebimento de chapas**: doca, empilhadeira e pórtico a vácuo que alimenta o laser.
+1. **Recebimento e almoxarifado** (lado esquerdo): o caminhão traz as chapas, a empilhadeira guarda o fardo na estante e é do estoque que sai a chapa para o laser. As estantes guardam também tinta, arame de solda, gases, químicos, embalagens, componentes e itens de reposição.
 2. **Corte a laser**: o cabeçote percorre o aninhamento real das peças de 2 mm; mesa de troca automática.
 3. **Dobra CNC**: robô sobre trilho posiciona o recorte e cada aba dobra na ordem da dobradeira.
 4. **Solda da carcaça**: um robô monta as 7 peças no gabarito e dois robôs MIG soldam.
@@ -45,7 +45,7 @@ Linha em U com nove estações, tudo animado em função do tempo (um armário a
 6. **Montagem**: base, mecanismo, portas, eletrônica e tampo, um posto por etapa.
 7. **Teste funcional**: o basculante e a porta são acionados no armário de verdade (mesmo mecanismo do modelo).
 8. **Embalagem e paletização**: caixa, cintas, 4 caixas por palete e filme stretch.
-9. **Expedição**: a empilhadeira carrega o caminhão, o portão abre e ele sai da fábrica.
+9. **Estoque e expedição** (lado direito): os paletes prontos vão para o porta-paletes de produto acabado; de lá outra empilhadeira carrega o caminhão, o portão abre e ele sai da fábrica.
 
 Controles: passeio automático pelas estações, vista geral, velocidade (1× a 8×), pausa e qualidade gráfica
 (Ultra, Alta, Média; baixa sozinha se a máquina não acompanhar). Setas ←/→ trocam de estação e a barra de espaço pausa.

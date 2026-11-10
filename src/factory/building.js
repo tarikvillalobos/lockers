@@ -2,7 +2,7 @@
 // luminárias, portões e o pátio externo.
 import * as THREE from 'three';
 import { M, box, rbox, cyl, beam, bake, shadows, panel, floorTexture, asphaltTexture, wallTexture, ribbedTexture, signTexture } from './kit.js';
-import { B, LANE, POS } from './layout.js';
+import { B, LANE, LANE_R } from './layout.js';
 
 export function buildBuilding(scene, paintFloor) {
   const root = new THREE.Group();
@@ -79,9 +79,9 @@ export function buildBuilding(scene, paintFloor) {
     return m;
   };
   const laneDoor = { x: LANE.x, w: 5.2, h: 5.2 };
-  const dockDoor = { x: POS.dockIn.x, w: 3.6, h: 4.4 };
-  scene.add(wallX(B.z0, 1, [laneDoor, dockDoor]));
-  scene.add(wallX(B.z1, -1, [laneDoor]));
+  const laneDoorR = { x: LANE_R.x, w: 5.2, h: 5.2 };
+  scene.add(wallX(B.z0, 1, [laneDoor, laneDoorR]));
+  scene.add(wallX(B.z1, -1, [laneDoor, laneDoorR]));
   scene.add(wallZ(B.x0, 1));
   scene.add(wallZ(B.x1, -1));
 
@@ -90,7 +90,7 @@ export function buildBuilding(scene, paintFloor) {
   const colXs = [];
   for (let x = B.x0 + 0.5; x <= B.x1 - 0.4; x += 6) colXs.push(x);
   for (const x of colXs) {
-    const skipBack = Math.abs(x - laneDoor.x) < 2.4 || Math.abs(x - dockDoor.x) < 1.6;
+    const skipBack = Math.abs(x - laneDoor.x) < 2.9 || Math.abs(x - laneDoorR.x) < 2.9;
     if (!skipBack) root.add(box(colMat, 0.3, B.h, 0.3, x, 0, B.z0 + 0.2));
 
     // proteção amarela/preta no pé das colunas
@@ -201,32 +201,16 @@ export function buildBuilding(scene, paintFloor) {
   const doors = {
     back: mkDoor(laneDoor, B.z0, 1),
     front: mkDoor(laneDoor, B.z1, -1),
-    dock: mkDoor(dockDoor, B.z0, 1),
+    backR: mkDoor(laneDoorR, B.z0, 1),
+    frontR: mkDoor(laneDoorR, B.z1, -1),
   };
-  doors.dock.setOpen(1);
-  doors.back.setOpen(0);
-  doors.front.setOpen(0);
-
-  // doca de chapas: niveladora + carreta do lado de fora
-  root.add(box(M.iron, 3.2, 0.06, 2.2, dockDoor.x, 0, B.z0 + 1.1));
-  root.add(box(M.hazard, 3.2, 0.02, 0.2, dockDoor.x, 0.06, B.z0 + 2.1));
-  const trailer = new THREE.Group();
-  trailer.add(box(M.iron, 2.5, 0.16, 9, 0, 1.0, 0));
-  trailer.add(box(M.wood, 2.44, 0.04, 8.9, 0, 1.16, 0));
-  for (const z of [1.4, 2.6]) for (const sx of [-1, 1]) trailer.add(cyl(M.rubber, 0.5, 0.3, sx * 1.05, 0.5, z - 6.5, 'x', 20));
-  trailer.add(box(M.red, 2.5, 1.5, 0.08, 0, 1.2, -4.5));
-  for (let i = 0; i < 2; i++) {
-    trailer.add(box(M.wood, 1.6, 0.1, 3.1, 0, 1.2, -1.2 - i * 3.3));
-    trailer.add(box(M.sheet, 1.5, 0.22, 3.0, 0, 1.3, -1.2 - i * 3.3));
-  }
-  trailer.position.set(dockDoor.x, 0, B.z0 - 4.7);
-  root.add(trailer);
+  for (const d of Object.values(doors)) d.setOpen(0);
 
   // ---------- utilidades na parede dos fundos ----------
-  root.add(box(M.galv, W - 14, 0.08, 0.4, cx + 5, 6.4, B.z0 + 0.5)); // eletrocalha
-  root.add(cyl(M.blue, 0.05, W - 14, cx + 5, 5.6, B.z0 + 0.32, 'x', 10)); // ar comprimido
-  root.add(cyl(M.galv, 0.07, W - 14, cx + 5, 5.9, B.z0 + 0.34, 'x', 10));
-  for (let x = -24; x < B.x1 - 2; x += 12) {
+  root.add(box(M.galv, 60, 0.08, 0.4, -2.5, 6.4, B.z0 + 0.5)); // eletrocalha
+  root.add(cyl(M.blue, 0.05, 60, -2.5, 5.6, B.z0 + 0.32, 'x', 10)); // ar comprimido
+  root.add(cyl(M.galv, 0.07, 60, -2.5, 5.9, B.z0 + 0.34, 'x', 10));
+  for (let x = -24; x < 28; x += 12) {
     root.add(rbox(M.light, 1.6, 2.1, 0.5, x, 0, B.z0 + 0.62, 0.02)); // painéis elétricos
     root.add(box(M.dark, 0.04, 1.2, 0.02, x - 0.2, 0.5, B.z0 + 0.88));
     root.add(cyl(M.galv, 0.03, 4.3, x, 2.1, B.z0 + 0.5, 'y', 8));
@@ -256,5 +240,5 @@ export function buildBuilding(scene, paintFloor) {
   dome.userData.noAO = true;
   scene.add(dome);
 
-  return { doors, floor, laneDoor, dockDoor };
+  return { doors, floor, laneDoor, laneDoorR };
 }

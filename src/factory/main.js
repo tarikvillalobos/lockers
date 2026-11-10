@@ -45,10 +45,10 @@ controls.autoRotateSpeed = 0.35;
 // ---------- luz ----------
 scene.add(new THREE.HemisphereLight(0xf3f7ff, 0x7d786e, 0.62));
 const key = new THREE.DirectionalLight(0xfff3e2, 2.25);
-key.position.set(-20, 48, 26);
-key.target.position.set(-6.5, 0, -1);
+key.position.set(-16, 48, 26);
+key.target.position.set(-2.5, 0, -1);
 key.castShadow = true;
-Object.assign(key.shadow.camera, { left: -42, right: 42, top: 24, bottom: -24, near: 8, far: 120 });
+Object.assign(key.shadow.camera, { left: -46, right: 46, top: 25, bottom: -25, near: 8, far: 120 });
 key.shadow.bias = -0.00035;
 key.shadow.normalBias = 0.035;
 key.shadow.autoUpdate = false;
@@ -186,8 +186,8 @@ $('btnOverview').addEventListener('click', () => {
   flyTo(OVERVIEW.p, OVERVIEW.t, 2.2);
   $('stN').textContent = '00';
   $('stName').textContent = 'Vista geral da planta';
-  $('stText').textContent = 'Fluxo em U: fabricação na fileira de trás, pintura no laço da direita e montagem na fileira da frente, até a doca de expedição. Arraste para orbitar e use o scroll para aproximar.';
-  $('stSpecs').innerHTML = [['Galpão', '73 × 30 m'], ['Estações', '9'], ['Robôs', '12 braços + 2 empilhadeiras']].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  $('stText').textContent = 'Fluxo em U: o almoxarifado à esquerda abastece a fabricação na fileira de trás; pintura no laço da direita, montagem na fileira da frente e o estoque de acabados à direita, ao lado da expedição. Arraste para orbitar e use o scroll para aproximar.';
+  $('stSpecs').innerHTML = [['Galpão', '81 × 30 m'], ['Estações', '9'], ['Robôs', '12 braços + 3 empilhadeiras']].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
 });
 $('qualitySeg').addEventListener('click', (e) => {
   const b = e.target.closest('button');

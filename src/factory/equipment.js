@@ -787,14 +787,15 @@ export function forklift() {
 }
 
 // caminhão com baú aberto na lateral (sider). Frente = +z. Carroceria: piso em y = 1.1
-export function truck() {
+// open: +1 abre a lateral +x, −1 abre a lateral −x. bedL: comprimento da carroceria.
+export function truck({ bedL = 3.9, open = 1, flat = false } = {}) {
   const g = G();
   const bedY = 1.1,
-    bedL = 3.9,
     bedW = 2.45;
+  const zc = 2.0 - bedL / 2; // centro da carroceria (a cabine fica à frente, em +z)
   // chassi + rodas
-  g.add(box(M.dark, 0.9, 0.22, bedL + 2.4, 0, 0.62, 0.9));
-  for (const [z, dual] of [[2.9, false], [-0.9, true]]) {
+  g.add(box(M.dark, 0.9, 0.22, bedL + 2.4, 0, 0.62, zc + 0.85));
+  for (const [z, dual] of [[2.9, false], [zc - bedL / 2 + 1.0, true]]) {
     for (const sx of [-1, 1]) {
       g.add(cyl(M.rubber, 0.48, dual ? 0.52 : 0.28, sx * (bedW / 2 - (dual ? 0.26 : 0.14)), 0.48, z, 'x', 24));
       g.add(cyl(M.galv, 0.24, (dual ? 0.52 : 0.28) + 0.02, sx * (bedW / 2 - (dual ? 0.26 : 0.14)), 0.48, z, 'x', 14));
@@ -819,17 +820,22 @@ export function truck() {
     g.add(box(M.dark, 0.06, 0.3, 0.14, sx * 1.3, 1.9, 3.75)); // retrovisores
   }
   g.add(box(M.orange, 2.31, 0.12, 1.81, 0, 1.25, 3.1));
-  // carroceria: piso, frontal, teto e colunas (lateral aberta)
-  const zc = 0.05;
+  // carroceria: piso, frontal, teto e colunas (uma lateral aberta) ou carga seca aberta (flat)
   g.add(box(M.iron, bedW, 0.14, bedL, 0, bedY - 0.14, zc));
   g.add(box(M.wood, bedW - 0.06, 0.02, bedL - 0.06, 0, bedY, zc));
-  g.add(rbox(M.white, bedW, 2.3, 0.08, 0, bedY, zc + bedL / 2 - 0.04, 0.01));
-  g.add(rbox(M.white, bedW, 2.3, 0.08, 0, bedY, zc - bedL / 2 + 0.04, 0.01));
-  g.add(rbox(M.white, bedW, 0.08, bedL, 0, bedY + 2.3, zc, 0.01));
-  g.add(rbox(M.white, 0.06, 2.3, bedL, -bedW / 2 + 0.03, bedY, zc, 0.01)); // lateral fechada (lado −x)
-  g.add(box(M.orange, 0.065, 0.3, bedL, -bedW / 2 + 0.03, bedY + 1.0, zc));
-  for (const z of [zc - bedL / 2 + 0.05, zc + bedL / 2 - 0.05]) g.add(box(M.light, 0.08, 2.3, 0.08, bedW / 2 - 0.04, bedY, z));
-  g.add(cyl(M.blue, 0.09, bedL - 0.1, bedW / 2 - 0.06, bedY + 2.22, zc, 'z', 12)); // lona recolhida
+  if (flat) {
+    g.add(rbox(M.white, bedW, 1.2, 0.08, 0, bedY, zc + bedL / 2 - 0.04, 0.01));
+    g.add(box(M.light, 0.06, 0.35, bedL, (-open * bedW) / 2 + open * 0.03, bedY, zc));
+    for (const z of [zc - bedL / 2 + 0.05, zc + bedL / 2 - 0.05]) g.add(box(M.light, 0.08, 0.6, 0.08, (-open * bedW) / 2 + open * 0.04, bedY, z));
+  } else {
+    g.add(rbox(M.white, bedW, 2.3, 0.08, 0, bedY, zc + bedL / 2 - 0.04, 0.01));
+    g.add(rbox(M.white, bedW, 2.3, 0.08, 0, bedY, zc - bedL / 2 + 0.04, 0.01));
+    g.add(rbox(M.white, bedW, 0.08, bedL, 0, bedY + 2.3, zc, 0.01));
+    g.add(rbox(M.white, 0.06, 2.3, bedL, (-open * bedW) / 2 + open * 0.03, bedY, zc, 0.01)); // lateral fechada
+    g.add(box(M.orange, 0.065, 0.3, bedL, (-open * bedW) / 2 + open * 0.03, bedY + 1.0, zc));
+    for (const z of [zc - bedL / 2 + 0.05, zc + bedL / 2 - 0.05]) g.add(box(M.light, 0.08, 2.3, 0.08, (open * bedW) / 2 - open * 0.04, bedY, z));
+    g.add(cyl(M.blue, 0.09, bedL - 0.1, (open * bedW) / 2 - open * 0.06, bedY + 2.22, zc, 'z', 12)); // lona recolhida
+  }
   g.add(box(M.red, 0.3, 0.12, 0.03, -0.9, bedY - 0.3, zc - bedL / 2 - 0.01)); // lanternas
   g.add(box(M.red, 0.3, 0.12, 0.03, 0.9, bedY - 0.3, zc - bedL / 2 - 0.01));
   const root = G();
@@ -873,4 +879,209 @@ export function hangSign(title, sub, color = '#1f4fa3') {
   for (const x of [-1.3, 1.3]) g.add(cyl(M.dark, 0.008, 3.6, x, 0.43, 0, 'y', 6));
   g.traverse((o) => o.isMesh && (o.castShadow = false));
   return g;
+}
+
+// ---------- armazenagem ----------
+// fardo de chapas (3,0 m ao longo de Z) sobre dois calços, com cintas
+export function sheetBundle(h = 0.12) {
+  const g = G();
+  for (const z of [-1.05, 1.05]) g.add(box(M.wood, 1.3, 0.08, 0.1, 0, 0, z));
+  g.add(box(M.sheet, 1.5, h, 3.0, 0, 0.08, 0));
+  for (const z of [-0.9, 0.9]) g.add(box(M.dark, 1.51, h + 0.004, 0.03, 0, 0.079, z));
+  const out = shadows(bake(g));
+  out.userData.h = 0.08 + h;
+  return out;
+}
+
+// estante cantilever para chapas: colunas atrás (z = +0,85) e braços para a frente (−z).
+// levels: alturas dos braços; filled: quais níveis já têm fardo (o fardo fica com 3 m ao longo de X)
+export function cantileverRack(levels, filled = [], label = '') {
+  const g = G();
+  const H = levels[levels.length - 1] + 0.9;
+  for (const x of [-1.25, 0, 1.25]) {
+    g.add(box(M.rackBlue, 0.14, H, 0.2, x, 0, 0.85));
+    g.add(box(M.rackBlue, 0.16, 0.1, 1.9, x, 0, 0));
+    for (const y of levels) {
+      g.add(box(M.rackOrange, 0.1, 0.1, 1.6, x, y - 0.1, -0.05));
+      g.add(box(M.rackOrange, 0.1, 0.07, 0.05, x, y, -0.83));
+    }
+  }
+  for (const y of [0.5, H - 0.3]) g.add(box(M.rackBlue, 2.6, 0.08, 0.06, 0, y, 0.93));
+  g.add(beam(M.rackBlue, [-1.25, 0.5, 0.93], [0, H - 0.3, 0.93], 0.05));
+  g.add(beam(M.rackBlue, [1.25, 0.5, 0.93], [0, H - 0.3, 0.93], 0.05));
+  levels.forEach((y, i) => {
+    if (!filled[i]) return;
+    const b = sheetBundle(typeof filled[i] === 'number' ? filled[i] : 0.12);
+    b.rotation.y = Math.PI / 2;
+    b.position.set(0, y, 0);
+    g.add(b);
+  });
+  if (label) {
+    const lg = panel(signTexture([label], { w: 512, h: 128, bg: '#16335f', size: 60 }), 1.1, 0.275);
+    lg.position.set(0, H - 0.1, 0.96);
+    lg.rotation.y = Math.PI;
+    g.add(lg);
+    const lf = panel(signTexture([label], { w: 512, h: 128, bg: '#16335f', size: 60 }), 1.1, 0.275);
+    lf.position.set(0, H + 0.02, 0.74);
+    g.add(lf);
+  }
+  return finish(g);
+}
+
+// cargas paletizadas do almoxarifado
+export function load(kind) {
+  const g = G();
+  g.add(woodPallet());
+  const y0 = 0.134;
+  if (kind === 'drums') {
+    for (const [x, z] of [[-0.3, -0.25], [0.3, -0.25], [-0.3, 0.25], [0.3, 0.25]]) {
+      g.add(cyl(M.drum, 0.27, 0.86, x, y0, z, 'y', 18));
+      g.add(cyl(M.dark, 0.275, 0.02, x, y0 + 0.28, z, 'y', 18));
+      g.add(cyl(M.dark, 0.275, 0.02, x, y0 + 0.58, z, 'y', 18));
+    }
+  } else if (kind === 'powder') {
+    // caixas de tinta em pó (20 kg) com etiqueta laranja
+    for (let k = 0; k < 3; k++)
+      for (const [x, z] of [[-0.3, -0.24], [0.3, -0.24], [-0.3, 0.24], [0.3, 0.24]]) {
+        g.add(rbox(M.carton, 0.56, 0.28, 0.44, x, y0 + k * 0.285, z, 0.01));
+        g.add(box(M.orange, 0.2, 0.12, 0.445, x, y0 + k * 0.285 + 0.08, z));
+      }
+  } else if (kind === 'wire') {
+    // carretéis de arame de solda em caixas
+    for (let k = 0; k < 4; k++)
+      for (const x of [-0.39, 0, 0.39])
+        for (const z of [-0.26, 0.26]) {
+          g.add(rbox(M.cartonDark, 0.35, 0.2, 0.42, x, y0 + k * 0.205, z, 0.008));
+          g.add(box(M.red, 0.351, 0.06, 0.1, x, y0 + k * 0.205 + 0.07, z));
+        }
+  } else if (kind === 'film') {
+    for (const x of [-0.4, -0.13, 0.14, 0.41]) for (const z of [-0.3, 0, 0.3]) g.add(cyl(M.white, 0.12, 0.5, x, y0, z, 'y', 14));
+    for (const x of [-0.4, -0.13, 0.14, 0.41]) for (const z of [-0.3, 0, 0.3]) g.add(cyl(M.cartonDark, 0.04, 0.52, x, y0, z, 'y', 8));
+  } else if (kind === 'flats') {
+    // caixas de papelão desmontadas, em fardos
+    for (let k = 0; k < 4; k++) {
+      g.add(box(k % 2 ? M.carton : M.cartonDark, 1.14, 0.2, 0.94, 0, y0 + k * 0.205, 0));
+      g.add(box(M.dark, 1.145, 0.202, 0.02, 0, y0 + k * 0.205, 0.2));
+    }
+  } else if (kind === 'totes') {
+    // caixas plásticas de componentes
+    for (let k = 0; k < 3; k++)
+      for (const [x, z] of [[-0.3, -0.24], [0.3, -0.24], [-0.3, 0.24], [0.3, 0.24]]) g.add(rbox((k + (x > 0 ? 1 : 0)) % 2 ? M.blue : M.light, 0.56, 0.3, 0.44, x, y0 + k * 0.31, z, 0.02));
+  } else if (kind === 'boxes') {
+    for (let k = 0; k < 2; k++) for (const [x, z] of [[-0.3, 0], [0.3, 0]]) g.add(rbox(M.carton, 0.56, 0.42, 0.9, x, y0 + k * 0.43, z, 0.01));
+  } else if (kind === 'straps') {
+    // bobinas de cinta
+    for (const x of [-0.3, 0.3]) for (let k = 0; k < 3; k++) g.add(cyl(M.plastic, 0.26, 0.16, x, y0 + k * 0.17, 0, 'y', 20));
+    for (const x of [-0.3, 0.3]) g.add(cyl(M.cartonDark, 0.1, 0.52, x, y0, 0, 'y', 12));
+  } else if (kind === 'pallets') {
+    for (let k = 1; k < 6; k++) {
+      const p = woodPallet();
+      p.position.y = k * 0.145;
+      g.add(p);
+    }
+  }
+  return g;
+}
+
+// palete de produto acabado: 4 caixas (um material só, para fundir em poucas malhas) + filme
+let fgMats = null;
+export function finishedPallet() {
+  fgMats ??= {
+    box: new THREE.MeshStandardMaterial({ map: cartonTexture('front'), roughness: 0.85 }),
+    film: new THREE.MeshPhysicalMaterial({ color: '#dfeaf2', roughness: 0.15, transparent: true, opacity: 0.3, depthWrite: false, clearcoat: 1 }),
+    strap: new THREE.MeshStandardMaterial({ color: '#15171a', roughness: 0.5 }),
+  };
+  const g = G();
+  g.add(woodPallet());
+  for (const [dx, dz] of [[-0.26, -0.24], [0.26, -0.24], [-0.26, 0.24], [0.26, 0.24]]) {
+    g.add(box(fgMats.box, 0.47, 1.1, 0.44, dx, 0.134, dz));
+    for (const y of [0.3, 0.8]) g.add(box(fgMats.strap, 0.476, 0.016, 0.446, dx, 0.134 + y, dz));
+  }
+  const f = box(fgMats.film, 1.03, 1.16, 0.96, 0, 0.134, 0);
+  f.userData.noShadow = true;
+  g.add(f);
+  return g;
+}
+
+// porta-paletes ao longo de X, com a frente em +z. fill(bay, level, pos) devolve a carga (ou null).
+export function palletRack({ bays = 3, bayW = 2.7, levels = [0, 1.5, 3.0], depth = 1.1, fill = () => null, loadYaw = 0 } = {}) {
+  const g = G();
+  const H = levels[levels.length - 1] + 1.55;
+  const L = bays * bayW;
+  for (let b = 0; b <= bays; b++) {
+    const x = -L / 2 + b * bayW;
+    for (const z of [-depth / 2, depth / 2]) {
+      g.add(box(M.rackBlue, 0.09, H, 0.07, x, 0, z));
+      g.add(box(M.iron, 0.14, 0.012, 0.12, x, 0, z));
+    }
+    for (let y = 0.3; y < H - 0.2; y += 1.1) g.add(beam(M.rackBlue, [x, y, -depth / 2], [x, y + 0.9, depth / 2], 0.03));
+    g.add(box(M.safety, 0.14, 0.4, 0.14, x, 0, depth / 2 + 0.02)); // protetor de coluna
+  }
+  for (let b = 0; b < bays; b++) {
+    const xc = -L / 2 + (b + 0.5) * bayW;
+    levels.forEach((y, li) => {
+      if (y > 0) for (const z of [-depth / 2, depth / 2]) g.add(box(M.rackOrange, bayW - 0.09, 0.11, 0.05, xc, y - 0.11, z));
+      for (const pos of [0, 1]) {
+        const ld = fill(b, li, pos);
+        if (!ld) continue;
+        ld.position.set(xc + (pos ? 0.66 : -0.66), y, 0);
+        ld.rotation.y = loadYaw;
+        g.add(ld);
+      }
+    });
+  }
+  return finish(g);
+}
+
+// estante leve com caixas (itens de reposição e componentes miúdos)
+export function binShelving(w = 2.4, h = 2.2, shelves = 5) {
+  const g = G();
+  for (const x of [-w / 2, w / 2]) for (const z of [-0.25, 0.25]) g.add(box(M.light, 0.04, h, 0.04, x, 0, z));
+  const cols = [M.blue, M.red, M.safety, M.green, M.light];
+  for (let i = 0; i < shelves; i++) {
+    const y = 0.12 + (i * (h - 0.3)) / (shelves - 1);
+    g.add(box(M.galv, w, 0.02, 0.52, 0, y, 0));
+    const n = Math.floor(w / 0.3);
+    for (let k = 0; k < n; k++) {
+      const m = i === shelves - 1 ? M.carton : cols[(k + i * 2) % cols.length];
+      const hh = i === shelves - 1 ? 0.26 : 0.16;
+      g.add(rbox(m, 0.26, hh, 0.4, -w / 2 + 0.17 + k * ((w - 0.34) / (n - 1)), y + 0.02, 0.02, 0.012));
+    }
+  }
+  return finish(g);
+}
+
+// gaiola de cilindros de gás (mistura de solda e nitrogênio)
+export function gasCage() {
+  const g = G();
+  g.add(box(M.iron, 1.6, 0.04, 1.9, 0, 0, 0));
+  for (let i = 0; i < 4; i++)
+    for (let k = 0; k < 3; k++) {
+      const x = -0.5 + i * 0.33,
+        z = -0.55 + k * 0.5;
+      const m = i < 2 ? M.gasGreen : M.gasGray;
+      g.add(cyl(m, 0.115, 1.35, x, 0.04, z, 'y', 14));
+      g.add(cyl(m, 0.06, 0.12, x, 1.39, z, 'y', 10, 0.03));
+      g.add(cyl(M.dark, 0.035, 0.1, x, 1.5, z, 'y', 8));
+    }
+  const root = G();
+  root.add(finish(g));
+  root.add(fenceRun([[-0.8, -0.95], [0.8, -0.95], [0.8, 0.95], [-0.8, 0.95], [-0.8, -0.95]], 1.9));
+  const lg = panel(signTexture(['GASES'], { w: 512, h: 128, bg: '#b3261e', size: 70 }), 0.9, 0.225);
+  lg.position.set(0, 2.05, 0.97);
+  root.add(lg);
+  return root;
+}
+
+// mesa de recebimento com computador e balança de piso
+export function receivingDesk() {
+  const g = G();
+  g.add(rbox(M.light, 1.4, 0.04, 0.7, 0, 1.0, 0, 0.01));
+  for (const x of [-0.62, 0.62]) for (const z of [-0.28, 0.28]) g.add(box(M.light, 0.05, 1.0, 0.05, x, 0, z));
+  g.add(rbox(M.dark, 0.5, 0.32, 0.03, -0.2, 1.14, -0.1, 0.01));
+  g.add(box(M.dark, 0.06, 0.1, 0.06, -0.2, 1.04, -0.1));
+  g.add(rbox(M.carton, 0.3, 0.2, 0.25, 0.4, 1.04, 0, 0.01));
+  g.add(box(M.iron, 1.5, 0.06, 1.5, 2.0, 0, 0.3)); // balança
+  g.add(box(M.hazard, 1.5, 0.004, 0.1, 2.0, 0.06, -0.4));
+  return finish(g);
 }

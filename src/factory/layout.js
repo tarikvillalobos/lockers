@@ -4,14 +4,19 @@
 
 export const TAKT = 24; // segundos de simulação por armário (1×)
 
-export const B = { x0: -43, x1: 30, z0: -15, z1: 15, h: 9.6 };
-export const LANE = { x: -39.5, w: 5 }; // corredor de caminhões (entra pelos fundos, sai pela frente)
+export const B = { x0: -43, x1: 38, z0: -15, z1: 15, h: 9.6 };
+// Dois corredores de caminhões (entram pelos fundos, saem pela frente):
+// à esquerda chegam as chapas e os insumos; à direita saem os armários prontos.
+export const LANE = { x: -39.5, w: 5 };
+export const LANE_R = { x: 34.2, w: 5 };
+// Almoxarifado (frente-esquerda) e estoque de produto acabado (frente-direita)
+export const STORE = { x0: -35.2, x1: -24.4, z0: 1.3, z1: 12.8, sheetRack: { x: -30.85, z: 3.05 } };
+export const FG = { x0: 11.6, x1: 27.6, z: 11.9, bays: 6, slots: [12.273, 13.593], aisle: 14.05 };
 export const ROW_A = -7;
 export const ASM_Z = 9.2;
 
 export const POS = {
   stack: { x: -30.6, z: ROW_A },
-  dockIn: { x: -33.2 }, // doca de chapas (parede dos fundos)
   laser: { load: -26.2, cut: -22.0, unload: -17.8, z: ROW_A },
   rail: { z: -4.9, x0: -19.6, x1: -11.0 },
   brake: { x: -12.3, z: -7.75, die: -7.15, h: 0.95 },
@@ -26,7 +31,8 @@ export const POS = {
   asm: { x: [4.6, 1.0, -2.6, -6.2, -9.8, -13.4, -17.0], z: ASM_Z, h: 0.42 },
   pallet: { x: -20.4, z: 9.6 },
   r13: { x: -18.7, z: 11.3 },
-  truck: { x: LANE.x, z: 8.8 },
+  truckIn: { x: LANE.x, z: 6.6 }, // caminhão de chapas e insumos
+  truckOut: { x: LANE_R.x, z: 10.3 }, // caminhão de expedição
 };
 
 // Trilho aéreo da pintura: retângulo de cantos arredondados, percorrido no sentido
@@ -76,12 +82,12 @@ export function paintPath() {
 // Estações do passeio: nome, o que acontece, números de processo e câmera
 export const STATIONS = [
   {
-    id: 'chapas',
+    id: 'almoxarifado',
     n: '01',
-    name: 'Recebimento de chapas',
-    text: 'As chapas de aço 3000 × 1500 mm chegam pela doca. A empilhadeira abastece o estoque e o pórtico a vácuo alimenta o laser, uma chapa por armário.',
-    specs: [['Chapa', 'SAE 1008 · 2,0 mm'], ['Formato', '3000 × 1500 mm'], ['Consumo', '4 chapas / armário']],
-    cam: { p: [-35.5, 5.2, 1.5], t: [-29.5, 1.0, -8.0] },
+    name: 'Recebimento e almoxarifado',
+    text: 'Chapas, tinta, arame de solda, gases, embalagens e componentes chegam pelo corredor da esquerda e vão para as estantes. É do estoque que a empilhadeira leva a chapa para o laser, um fardo a cada 8 armários.',
+    specs: [['Chapas', 'estante cantilever · 4 espessuras'], ['Insumos', 'tinta, arame, gases, químicos'], ['Itens', 'componentes e reposição']],
+    cam: { p: [-21.5, 6.4, 1.2], t: [-31.2, 1.5, 7.2] },
   },
   {
     id: 'laser',
@@ -142,11 +148,11 @@ export const STATIONS = [
   {
     id: 'expedicao',
     n: '09',
-    name: 'Expedição',
-    text: 'A empilhadeira leva os paletes para o caminhão no corredor de carga. Com a carga completa, o portão abre e o caminhão sai da fábrica.',
-    specs: [['Carga', '8 armários / viagem'], ['Doca', 'carga lateral'], ['Saída', 'portão frontal']],
-    cam: { p: [-27.5, 5.4, 20.5], t: [-37.0, 1.4, 9.0] },
+    name: 'Estoque e expedição',
+    text: 'Os paletes prontos vão para o estoque de produto acabado, no lado direito. De lá a empilhadeira carrega o caminhão; com a carga completa, o portão abre e ele sai da fábrica.',
+    specs: [['Estoque', 'porta-paletes · 3 níveis'], ['Carga', '8 armários / viagem'], ['Saída', 'portão frontal direito']],
+    cam: { p: [21.0, 8.5, 25.0], t: [30.5, 1.4, 12.0] },
   },
 ];
 
-export const OVERVIEW = { p: [-4, 30, 46], t: [-6, 0, -1] };
+export const OVERVIEW = { p: [-2.5, 40, 60], t: [-2.5, 0, 0] };
