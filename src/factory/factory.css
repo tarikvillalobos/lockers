@@ -376,3 +376,59 @@ body {
     width: 100%;
   }
 }
+
+/* ---------- modo só a fábrica ---------- */
+.hide-ui {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.hide-ui:hover {
+  border-color: #c9ced6;
+}
+.hide-ui .slash {
+  display: none;
+}
+.hud {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+body.clean .hud:not(.top-left) {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+body.clean .top-left {
+  width: auto;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+body.clean .top-left > :not(.hide-ui) {
+  display: none;
+}
+body.clean .hide-ui {
+  position: static;
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 6px 20px rgba(12, 16, 22, 0.2);
+  backdrop-filter: blur(10px);
+  opacity: 0.7;
+}
+body.clean .hide-ui:hover {
+  opacity: 1;
+}
+body.clean .hide-ui .slash {
+  display: block;
+}

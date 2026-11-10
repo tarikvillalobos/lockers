@@ -200,7 +200,25 @@ renderer.domElement.addEventListener('pointerdown', () => {
   if (tour) setTour(false);
   fly = null;
 });
+function setClean(on) {
+  document.body.classList.toggle('clean', on);
+  const b = $('btnClean');
+  b.title = on ? 'Mostrar a interface (H)' : 'Esconder a interface e ver só a fábrica (H)';
+  b.setAttribute('aria-label', on ? 'Mostrar a interface' : 'Esconder a interface');
+  try {
+    localStorage.setItem('fab-clean', on ? '1' : '0');
+  } catch {
+    /* sem armazenamento: segue sem lembrar */
+  }
+}
+$('btnClean').addEventListener('click', () => setClean(!document.body.classList.contains('clean')));
+try {
+  if (localStorage.getItem('fab-clean') === '1') setClean(true);
+} catch {
+  /* ignora */
+}
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'h' || e.key === 'H') setClean(!document.body.classList.contains('clean'));
   if (e.key === ' ') {
     e.preventDefault();
     $('btnPlay').click();
